@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // ─── TRANSLATIONS ────────────────────────────────────────────────
 const T = {
@@ -13,7 +13,7 @@ const T = {
     loggingIn: "Авторизація…",
     loggedAs: "Увійшов як",
     logout: "Вийти",
-    search: "Пошук", profile: "Профіль", liked: "Лайки",
+    search: "Пошук", profile: "Профіль", liked: "Лайки", chats: "Чати",
     cityPlaceholder: "Введи місто…",
     likeBtn: "Подобається", likedBtn: "Вподобано",
     replyBtn: "Відповісти ❤️",
@@ -23,6 +23,14 @@ const T = {
     nobodyCity: c => `у місті «${c}»`,
     fieldName: "Ім'я", fieldBirth: "Дата народження", fieldCity: "Місто", fieldBio: "Про себе",
     years: "років",
+    matchTitle: "Взаємний лайк! 💚",
+    matchSub: name => `Ти і ${name} сподобались одне одному`,
+    matchBtn: "Написати",
+    noChats: "Поки що немає чатів",
+    noChatsHint: "Лайкай людей — при взаємному лайку з'явиться переписка",
+    msgPlaceholder: "Напиши повідомлення…",
+    send: "↑",
+    back: "←",
   },
   by: {
     appName: "Huugs", tagline: "два атома — одна орбита",
@@ -35,7 +43,7 @@ const T = {
     loggingIn: "Авторизация…",
     loggedAs: "Вошёл как",
     logout: "Выйти",
-    search: "Поиск", profile: "Профиль", liked: "Лайки",
+    search: "Поиск", profile: "Профиль", liked: "Лайки", chats: "Чаты",
     cityPlaceholder: "Введи город…",
     likeBtn: "Нравится", likedBtn: "Понравилось",
     replyBtn: "Ответить ❤️",
@@ -45,17 +53,25 @@ const T = {
     nobodyCity: c => `в городе «${c}»`,
     fieldName: "Имя", fieldBirth: "Дата рождения", fieldCity: "Город", fieldBio: "О себе",
     years: "лет",
+    matchTitle: "Взаимный лайк! 💚",
+    matchSub: name => `Ты и ${name} понравились друг другу`,
+    matchBtn: "Написать",
+    noChats: "Пока нет чатов",
+    noChatsHint: "Лайкай людей — при взаимном лайке появится переписка",
+    msgPlaceholder: "Напиши сообщение…",
+    send: "↑",
+    back: "←",
   },
 };
 
 // ─── DATA ────────────────────────────────────────────────────────
 const mockProfiles = [
-  { id:1, name:"Соня",  birth:"1998-03-12", city:"Київ",   photo:"https://randomuser.me/api/portraits/women/44.jpg", bio:{ua:"Люблю каву, гори та хороші книжки 📚",         by:"Люблю кофе, горы и хорошие книги 📚"},         liked:false },
-  { id:2, name:"Марія", birth:"1995-07-22", city:"Львів",   photo:"https://randomuser.me/api/portraits/women/65.jpg", bio:{ua:"Художниця. Шукаю того, хто помічає деталі 🎨", by:"Художница. Ищу того, кто замечает детали 🎨"},  liked:false },
-  { id:3, name:"Олена", birth:"2000-01-05", city:"Одеса",   photo:"https://randomuser.me/api/portraits/women/32.jpg", bio:{ua:"Море, сонце і спонтанні пригоди ☀️",           by:"Море, солнце и спонтанные приключения ☀️"},      liked:false },
+  { id:1, name:"Соня",  birth:"1998-03-12", city:"Київ",   photo:"https://randomuser.me/api/portraits/women/44.jpg", bio:{ua:"Люблю каву, гори та хороші книжки 📚",         by:"Люблю кофе, горы и хорошие книги 📚"},         liked:false, likedMeBack:true },
+  { id:2, name:"Марія", birth:"1995-07-22", city:"Львів",  photo:"https://randomuser.me/api/portraits/women/65.jpg", bio:{ua:"Художниця. Шукаю того, хто помічає деталі 🎨", by:"Художница. Ищу того, кто замечает детали 🎨"},  liked:false },
+  { id:3, name:"Олена", birth:"2000-01-05", city:"Одеса",  photo:"https://randomuser.me/api/portraits/women/32.jpg", bio:{ua:"Море, сонце і спонтанні пригоди ☀️",           by:"Море, солнце и спонтанные приключения ☀️"},      liked:false, likedMeBack:true },
   { id:4, name:"Діана", birth:"1993-11-18", city:"Київ",   photo:"https://randomuser.me/api/portraits/women/17.jpg", bio:{ua:"Лікар. Ціную щирість та гумор 💙",              by:"Врач. Ценю искренность и юмор 💙"},               liked:false },
   { id:5, name:"Аня",   birth:"1997-06-30", city:"Харків", photo:"https://randomuser.me/api/portraits/women/55.jpg", bio:{ua:"Танцюю сальсу, мрію про Барселону 🌹",          by:"Танцую сальсу, мечтаю о Барселоне 🌹"},           liked:false },
-  { id:6, name:"Катя",  birth:"2001-09-14", city:"Львів",   photo:"https://randomuser.me/api/portraits/women/29.jpg", bio:{ua:"Студентка архітектури. Закохана у простір 🏛️", by:"Студентка архитектуры. Влюблена в пространство 🏛️"}, liked:false },
+  { id:6, name:"Катя",  birth:"2001-09-14", city:"Львів",  photo:"https://randomuser.me/api/portraits/women/29.jpg", bio:{ua:"Студентка архітектури. Закохана у простір 🏛️", by:"Студентка архитектуры. Влюблена в пространство 🏛️"}, liked:false },
 ];
 const whoLikedMe = [
   { id:7, name:"Іра",  birth:"1999-04-10", city:"Київ",   photo:"https://randomuser.me/api/portraits/women/12.jpg" },
@@ -68,6 +84,7 @@ const fakeUsers = {
 };
 
 function calcAge(b) { return Math.floor((Date.now()-new Date(b))/(1e3*60*60*24*365.25)); }
+function timeStr() { const d=new Date(); return `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}`; }
 
 // ─── PARTICLES ───────────────────────────────────────────────────
 function Particles() {
@@ -92,7 +109,6 @@ function Particles() {
 function AuthModal({ provider, t, onConfirm, onCancel, loading }) {
   const info = provider === "telegram" ? t.tgModal : t.igModal;
   const isTg = provider === "telegram";
-  const color = isTg ? "#27a7e7" : "url(#igGrad)";
   const icon = isTg
     ? <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 13.928l-2.948-.924c-.64-.203-.658-.64.135-.954l11.566-4.461c.537-.194 1.006.131.881.632z"/></svg>
     : <svg width="32" height="32" viewBox="0 0 24 24"><defs><linearGradient id="igGrad" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stopColor="#f09433"/><stop offset="25%" stopColor="#e6683c"/><stop offset="50%" stopColor="#dc2743"/><stop offset="75%" stopColor="#cc2366"/><stop offset="100%" stopColor="#bc1888"/></linearGradient></defs><path fill="white" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>;
@@ -114,7 +130,6 @@ function AuthModal({ provider, t, onConfirm, onCancel, loading }) {
         textAlign:"center",
         boxShadow:"0 24px 60px rgba(0,0,0,0.5)",
       }}>
-        {/* Provider icon */}
         <div style={{
           width:68,height:68,borderRadius:"50%",
           background: isTg ? "#27a7e7" : "linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)",
@@ -122,48 +137,47 @@ function AuthModal({ provider, t, onConfirm, onCancel, loading }) {
           margin:"0 auto 20px",
           boxShadow:`0 8px 28px ${isTg?"rgba(39,167,231,0.4)":"rgba(220,39,67,0.4)"}`,
         }}>{icon}</div>
-
-        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:500,color:"#e8f4e8",marginBottom:10}}>
-          {info.title}
-        </h2>
-        <p style={{fontFamily:"'Nunito',sans-serif",fontSize:14,color:"rgba(168,230,207,0.6)",lineHeight:1.6,marginBottom:28}}>
-          {info.desc}
-        </p>
-
-        {/* Fake phone/username input */}
-        <div style={{
-          background:"rgba(255,255,255,0.05)",
-          border:"1.5px solid rgba(168,230,207,0.15)",
-          borderRadius:14, padding:"12px 16px",
-          marginBottom:16, textAlign:"left",
-        }}>
-          <div style={{fontFamily:"'Nunito',sans-serif",fontSize:10,color:"rgba(168,230,207,0.4)",letterSpacing:2,textTransform:"uppercase",marginBottom:5}}>
-            {isTg ? "Telegram" : "Instagram"} ID
-          </div>
-          <div style={{fontFamily:"'Nunito',sans-serif",fontSize:15,color:"#a8e6cf"}}>
-            {isTg ? "@oleh_ua" : "@oleh.photo"}
-          </div>
+        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:500,color:"#e8f4e8",marginBottom:10}}>{info.title}</h2>
+        <p style={{fontFamily:"'Nunito',sans-serif",fontSize:14,color:"rgba(168,230,207,0.6)",lineHeight:1.6,marginBottom:28}}>{info.desc}</p>
+        <div style={{background:"rgba(255,255,255,0.05)",border:"1.5px solid rgba(168,230,207,0.15)",borderRadius:14,padding:"12px 16px",marginBottom:16,textAlign:"left"}}>
+          <div style={{fontFamily:"'Nunito',sans-serif",fontSize:10,color:"rgba(168,230,207,0.4)",letterSpacing:2,textTransform:"uppercase",marginBottom:5}}>{isTg ? "Telegram" : "Instagram"} ID</div>
+          <div style={{fontFamily:"'Nunito',sans-serif",fontSize:15,color:"#a8e6cf"}}>{isTg ? "@oleh_ua" : "@oleh.photo"}</div>
         </div>
-
-        <button onClick={onConfirm} disabled={loading} style={{
-          width:"100%", padding:"14px",
-          background: loading ? "rgba(86,171,145,0.3)" : (isTg ? "linear-gradient(135deg,#27a7e7,#1d8cbf)" : "linear-gradient(135deg,#f09433,#dc2743)"),
-          border:"none", borderRadius:16,
-          color:"#fff", fontFamily:"'Nunito',sans-serif",
-          fontSize:14, fontWeight:700, cursor: loading ? "not-allowed" : "pointer",
-          marginBottom:12,
-          boxShadow: loading ? "none" : `0 4px 20px ${isTg?"rgba(39,167,231,0.35)":"rgba(220,39,67,0.35)"}`,
-          transition:"all 0.2s",
-        }}>
+        <button onClick={onConfirm} disabled={loading} style={{width:"100%",padding:"14px",background:loading?"rgba(86,171,145,0.3)":(isTg?"linear-gradient(135deg,#27a7e7,#1d8cbf)":"linear-gradient(135deg,#f09433,#dc2743)"),border:"none",borderRadius:16,color:"#fff",fontFamily:"'Nunito',sans-serif",fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",marginBottom:12,boxShadow:loading?"none":`0 4px 20px ${isTg?"rgba(39,167,231,0.35)":"rgba(220,39,67,0.35)"}`,transition:"all 0.2s"}}>
           {loading ? "⏳ " + t.loggingIn : info.btn}
         </button>
-        <button onClick={onCancel} style={{
-          width:"100%", padding:"12px",
-          background:"transparent",
-          border:"1.5px solid rgba(168,230,207,0.15)",
-          borderRadius:16, color:"rgba(168,230,207,0.5)",
-          fontFamily:"'Nunito',sans-serif", fontSize:13, cursor:"pointer",
-        }}>{info.cancel}</button>
+        <button onClick={onCancel} style={{width:"100%",padding:"12px",background:"transparent",border:"1.5px solid rgba(168,230,207,0.15)",borderRadius:16,color:"rgba(168,230,207,0.5)",fontFamily:"'Nunito',sans-serif",fontSize:13,cursor:"pointer"}}>{info.cancel}</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── MATCH NOTIFICATION ──────────────────────────────────────────
+function MatchNotif({ user, t, onWrite, onClose }) {
+  return (
+    <div style={{
+      position:"fixed",inset:0,zIndex:200,
+      background:"rgba(5,12,24,0.9)",backdropFilter:"blur(16px)",
+      display:"flex",alignItems:"center",justifyContent:"center",
+      padding:20,animation:"fadeUp 0.3s ease",
+    }} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{
+        background:"linear-gradient(145deg,rgba(86,171,145,0.15),rgba(56,141,115,0.08))",
+        border:"1px solid rgba(86,171,145,0.4)",
+        borderRadius:28,padding:"40px 28px",
+        maxWidth:320,width:"100%",
+        textAlign:"center",
+        boxShadow:"0 24px 60px rgba(0,0,0,0.6), 0 0 80px rgba(86,171,145,0.12)",
+      }}>
+        <div style={{fontSize:56,marginBottom:12,display:"inline-block",animation:"heartPop 0.6s ease"}}>💚</div>
+        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:500,color:"#a8e6cf",marginBottom:8}}>{t.matchTitle}</h2>
+        <p style={{fontFamily:"'Nunito',sans-serif",fontSize:14,color:"rgba(168,230,207,0.65)",lineHeight:1.65,marginBottom:24}}>{t.matchSub(user.name)}</p>
+        <div style={{position:"relative",width:96,height:96,margin:"0 auto 28px"}}>
+          <img src={user.photo} alt="" style={{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover",border:"3px solid rgba(86,171,145,0.55)",display:"block",boxShadow:"0 0 32px rgba(86,171,145,0.35)"}}/>
+          <div style={{position:"absolute",bottom:0,right:0,background:"linear-gradient(135deg,#56ab91,#388d73)",borderRadius:"50%",width:28,height:28,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,border:"2.5px solid #0d2137"}}>💚</div>
+        </div>
+        <button onClick={onWrite} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#56ab91,#388d73)",border:"none",borderRadius:16,color:"#fff",fontFamily:"'Nunito',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",marginBottom:12,boxShadow:"0 4px 20px rgba(86,171,145,0.4)"}}>{t.matchBtn}</button>
+        <button onClick={onClose} style={{width:"100%",padding:"12px",background:"transparent",border:"1.5px solid rgba(168,230,207,0.15)",borderRadius:16,color:"rgba(168,230,207,0.45)",fontFamily:"'Nunito',sans-serif",fontSize:13,cursor:"pointer"}}>{t.cancelBtn}</button>
       </div>
     </div>
   );
@@ -187,133 +201,43 @@ function WelcomeScreen({ lang, setLang, t, onAuth }) {
     }}>
       {modal && <AuthModal provider={modal} t={t} loading={loading} onConfirm={() => handleConfirm(modal)} onCancel={() => setModal(null)} />}
 
-      {/* Lang switcher top */}
       <div style={{ position:"absolute", top:20, right:20, display:"flex", background:"rgba(255,255,255,0.05)", borderRadius:50, padding:3, gap:2, border:"1px solid rgba(168,230,207,0.1)" }}>
         {[{code:"ua",flag:"🇺🇦"},{code:"by",flag:"🇧🇾"}].map(l=>(
-          <button key={l.code} onClick={()=>setLang(l.code)} style={{
-            background: lang===l.code?"rgba(86,171,145,0.35)":"transparent",
-            border:"none", borderRadius:50,
-            width:38,height:38,fontSize:21,cursor:"pointer",
-            display:"flex",alignItems:"center",justifyContent:"center",
-            boxShadow:lang===l.code?"0 0 14px rgba(86,171,145,0.35)":"none",
-            transition:"all 0.2s",
-          }}>{l.flag}</button>
+          <button key={l.code} onClick={()=>setLang(l.code)} style={{background:lang===l.code?"rgba(86,171,145,0.35)":"transparent",border:"none",borderRadius:50,width:38,height:38,fontSize:21,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:lang===l.code?"0 0 14px rgba(86,171,145,0.35)":"none",transition:"all 0.2s"}}>{l.flag}</button>
         ))}
       </div>
 
-      {/* Logo */}
       <div style={{ textAlign:"center", marginBottom:52 }}>
-        {/* Orbit animation */}
         <div style={{ position:"relative", width:100, height:100, margin:"0 auto 24px" }}>
-          <div style={{
-            position:"absolute", inset:0,
-            border:"1.5px solid rgba(86,171,145,0.25)",
-            borderRadius:"50%",
-            animation:"orbit 6s linear infinite",
-          }}/>
-          <div style={{
-            position:"absolute", inset:10,
-            border:"1px solid rgba(168,230,207,0.15)",
-            borderRadius:"50%",
-            animation:"orbit 10s linear infinite reverse",
-          }}/>
-          {/* Center dot */}
-          <div style={{
-            position:"absolute", top:"50%", left:"50%",
-            transform:"translate(-50%,-50%)",
-            width:28, height:28, borderRadius:"50%",
-            background:"linear-gradient(135deg,#56ab91,#388d73)",
-            boxShadow:"0 0 24px rgba(86,171,145,0.6)",
-          }}/>
-          {/* Orbiting dot */}
-          <div style={{
-            position:"absolute", top:0, left:"50%",
-            width:10, height:10, borderRadius:"50%",
-            background:"#f9d976",
-            boxShadow:"0 0 10px rgba(249,217,118,0.8)",
-            marginLeft:-5, marginTop:-5,
-            transformOrigin:"5px 55px",
-            animation:"orbit 6s linear infinite",
-          }}/>
+          <div style={{position:"absolute",inset:0,border:"1.5px solid rgba(86,171,145,0.25)",borderRadius:"50%",animation:"orbit 6s linear infinite"}}/>
+          <div style={{position:"absolute",inset:10,border:"1px solid rgba(168,230,207,0.15)",borderRadius:"50%",animation:"orbit 10s linear infinite reverse"}}/>
+          <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#56ab91,#388d73)",boxShadow:"0 0 24px rgba(86,171,145,0.6)"}}/>
+          <div style={{position:"absolute",top:0,left:"50%",width:10,height:10,borderRadius:"50%",background:"#f9d976",boxShadow:"0 0 10px rgba(249,217,118,0.8)",marginLeft:-5,marginTop:-5,transformOrigin:"5px 55px",animation:"orbit 6s linear infinite"}}/>
         </div>
-
-        <h1 style={{
-          fontFamily:"'Cormorant Garamond',serif",
-          fontSize:48, fontWeight:600, lineHeight:1,
-          background:"linear-gradient(90deg,#a8e6cf 0%,#56ab91 40%,#f9d976 60%,#a8e6cf 100%)",
-          backgroundSize:"200% auto",
-          WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent",
-          backgroundClip:"text",
-          animation:"shimmer 4s linear infinite",
-        }}>{t.appName}</h1>
-        <p style={{ fontFamily:"'Nunito',sans-serif", fontSize:11, color:"rgba(168,230,207,0.4)", letterSpacing:2.5, textTransform:"uppercase", marginTop:6 }}>
-          {t.tagline}
-        </p>
+        <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:48,fontWeight:600,lineHeight:1,background:"linear-gradient(90deg,#a8e6cf 0%,#56ab91 40%,#f9d976 60%,#a8e6cf 100%)",backgroundSize:"200% auto",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",animation:"shimmer 4s linear infinite"}}>{t.appName}</h1>
+        <p style={{fontFamily:"'Nunito',sans-serif",fontSize:11,color:"rgba(168,230,207,0.4)",letterSpacing:2.5,textTransform:"uppercase",marginTop:6}}>{t.tagline}</p>
       </div>
 
-      {/* Headline */}
       <div style={{ textAlign:"center", marginBottom:44 }}>
-        <h2 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:400, color:"#e8f4e8", lineHeight:1.3, marginBottom:10 }}>
-          {t.welcomeTitle}
-        </h2>
-        <p style={{ fontFamily:"'Nunito',sans-serif", fontSize:14, color:"rgba(168,230,207,0.5)", lineHeight:1.6 }}>
-          {t.welcomeSub}
-        </p>
+        <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:400,color:"#e8f4e8",lineHeight:1.3,marginBottom:10}}>{t.welcomeTitle}</h2>
+        <p style={{fontFamily:"'Nunito',sans-serif",fontSize:14,color:"rgba(168,230,207,0.5)",lineHeight:1.6}}>{t.welcomeSub}</p>
       </div>
 
-      {/* Auth buttons */}
       <div style={{ width:"100%", maxWidth:320, display:"flex", flexDirection:"column", gap:14 }}>
-        {/* Telegram */}
-        <button onClick={()=>setModal("telegram")} style={{
-          display:"flex", alignItems:"center", justifyContent:"center", gap:14,
-          padding:"16px 24px",
-          background:"linear-gradient(135deg, rgba(39,167,231,0.2), rgba(29,140,191,0.15))",
-          border:"1.5px solid rgba(39,167,231,0.35)",
-          borderRadius:18, cursor:"pointer",
-          color:"#e8f4e8",
-          fontFamily:"'Nunito',sans-serif", fontSize:15, fontWeight:700,
-          boxShadow:"0 4px 24px rgba(39,167,231,0.15)",
-          transition:"all 0.2s",
-          letterSpacing:0.3,
-        }}>
+        <button onClick={()=>setModal("telegram")} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,padding:"16px 24px",background:"linear-gradient(135deg, rgba(39,167,231,0.2), rgba(29,140,191,0.15))",border:"1.5px solid rgba(39,167,231,0.35)",borderRadius:18,cursor:"pointer",color:"#e8f4e8",fontFamily:"'Nunito',sans-serif",fontSize:15,fontWeight:700,boxShadow:"0 4px 24px rgba(39,167,231,0.15)",transition:"all 0.2s",letterSpacing:0.3}}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="#27a7e7"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.26 13.928l-2.948-.924c-.64-.203-.658-.64.135-.954l11.566-4.461c.537-.194 1.006.131.881.632z"/></svg>
           {t.loginWith} Telegram
         </button>
-
-        {/* Instagram */}
-        <button onClick={()=>setModal("instagram")} style={{
-          display:"flex", alignItems:"center", justifyContent:"center", gap:14,
-          padding:"16px 24px",
-          background:"linear-gradient(135deg, rgba(240,148,51,0.15), rgba(220,39,67,0.15), rgba(188,24,136,0.15))",
-          border:"1.5px solid rgba(220,39,67,0.3)",
-          borderRadius:18, cursor:"pointer",
-          color:"#e8f4e8",
-          fontFamily:"'Nunito',sans-serif", fontSize:15, fontWeight:700,
-          boxShadow:"0 4px 24px rgba(220,39,67,0.12)",
-          transition:"all 0.2s",
-          letterSpacing:0.3,
-        }}>
+        <button onClick={()=>setModal("instagram")} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,padding:"16px 24px",background:"linear-gradient(135deg, rgba(240,148,51,0.15), rgba(220,39,67,0.15), rgba(188,24,136,0.15))",border:"1.5px solid rgba(220,39,67,0.3)",borderRadius:18,cursor:"pointer",color:"#e8f4e8",fontFamily:"'Nunito',sans-serif",fontSize:15,fontWeight:700,boxShadow:"0 4px 24px rgba(220,39,67,0.12)",transition:"all 0.2s",letterSpacing:0.3}}>
           <svg width="24" height="24" viewBox="0 0 24 24"><defs><linearGradient id="ig2" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stopColor="#f09433"/><stop offset="50%" stopColor="#dc2743"/><stop offset="100%" stopColor="#bc1888"/></linearGradient></defs><path fill="url(#ig2)" d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
           {t.loginWith} Instagram
         </button>
-
-        {/* Divider */}
-        <div style={{ display:"flex", alignItems:"center", gap:12, margin:"4px 0" }}>
-          <div style={{ flex:1, height:1, background:"rgba(168,230,207,0.1)" }}/>
-          <span style={{ fontFamily:"'Nunito',sans-serif", fontSize:12, color:"rgba(168,230,207,0.3)", letterSpacing:1 }}>{t.orDivider}</span>
-          <div style={{ flex:1, height:1, background:"rgba(168,230,207,0.1)" }}/>
+        <div style={{display:"flex",alignItems:"center",gap:12,margin:"4px 0"}}>
+          <div style={{flex:1,height:1,background:"rgba(168,230,207,0.1)"}}/>
+          <span style={{fontFamily:"'Nunito',sans-serif",fontSize:12,color:"rgba(168,230,207,0.3)",letterSpacing:1}}>{t.orDivider}</span>
+          <div style={{flex:1,height:1,background:"rgba(168,230,207,0.1)"}}/>
         </div>
-
-        {/* Guest */}
-        <button onClick={()=>onAuth("guest")} style={{
-          padding:"13px",
-          background:"transparent",
-          border:"1.5px solid rgba(168,230,207,0.12)",
-          borderRadius:16, cursor:"pointer",
-          color:"rgba(168,230,207,0.4)",
-          fontFamily:"'Nunito',sans-serif", fontSize:13,
-          transition:"all 0.2s",
-        }}>{t.continueGuest}</button>
+        <button onClick={()=>onAuth("guest")} style={{padding:"13px",background:"transparent",border:"1.5px solid rgba(168,230,207,0.12)",borderRadius:16,cursor:"pointer",color:"rgba(168,230,207,0.4)",fontFamily:"'Nunito',sans-serif",fontSize:13,transition:"all 0.2s"}}>{t.continueGuest}</button>
       </div>
     </div>
   );
@@ -321,16 +245,27 @@ function WelcomeScreen({ lang, setLang, t, onAuth }) {
 
 // ─── MAIN APP ────────────────────────────────────────────────────
 export default function App() {
-  const [lang, setLang]       = useState("ua");
-  const [authState, setAuth]  = useState(null); // null | { provider, user }
-  const [tab, setTab]         = useState("search");
-  const [city, setCity]       = useState("");
+  const [lang, setLang]         = useState("ua");
+  const [authState, setAuth]    = useState(null);
+  const [tab, setTab]           = useState("search");
+  const [city, setCity]         = useState("");
   const [profiles, setProfiles] = useState(mockProfiles);
   const [myProfile, setMyProfile] = useState(null);
-  const [draft, setDraft]     = useState(null);
+  const [draft, setDraft]       = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [openCard, setOpenCard] = useState(null);
+  const [chats, setChats]       = useState([]);
+  const [openChatId, setOpenChatId] = useState(null);
+  const [matchNotif, setMatchNotif] = useState(null);
+  const [msgInput, setMsgInput] = useState("");
+  const messagesEndRef = useRef(null);
   const t = T[lang];
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [openChatId, chats]);
 
   const handleAuth = (provider) => {
     const user = provider === "guest"
@@ -341,14 +276,63 @@ export default function App() {
     setTab("search");
   };
 
-  const handleLogout = () => { setAuth(null); setMyProfile(null); setTab("search"); };
+  const handleLogout = () => { setAuth(null); setMyProfile(null); setTab("search"); setChats([]); setOpenChatId(null); };
+
+  const createChat = (user) => {
+    setChats(prev => {
+      if (prev.find(c => c.userId === user.id)) return prev;
+      return [...prev, { id: user.id, userId: user.id, user, messages: [] }];
+    });
+  };
 
   const toggleLike = (id, e) => {
     e.stopPropagation();
-    setProfiles(prev => prev.map(p => p.id===id ? {...p,liked:!p.liked} : p));
+    setProfiles(prev => prev.map(p => {
+      if (p.id !== id) return p;
+      const nowLiked = !p.liked;
+      if (nowLiked && p.likedMeBack) {
+        createChat(p);
+        setMatchNotif(p);
+      } else if (!nowLiked && p.likedMeBack) {
+        // Remove chat if un-liked
+        setChats(prev2 => prev2.filter(c => c.userId !== p.id));
+        if (openChatId === p.id) setOpenChatId(null);
+      }
+      return { ...p, liked: nowLiked };
+    }));
+  };
+
+  const handleReply = (user) => {
+    createChat(user);
+    setTab("chats");
+    setOpenChatId(user.id);
+  };
+
+  const sendMessage = (chatId) => {
+    const text = msgInput.trim();
+    if (!text) return;
+    setChats(prev => prev.map(c => {
+      if (c.id !== chatId) return c;
+      const newMsg = { from:"me", text, time: timeStr() };
+      // Simulate a reply after 1.2s
+      setTimeout(() => {
+        const replies = [
+          "Привіт! Рада познайомитися 😊", "Як ти? 🌿", "Дуже приємно!", "О, цікаво! Розкажи більше 😄",
+          "Чудово! А ти звідки? 🌍", "Теж люблю подорожувати ✈️", "Клас! 💚",
+        ];
+        const replyText = replies[Math.floor(Math.random() * replies.length)];
+        setChats(prev2 => prev2.map(c2 => c2.id !== chatId ? c2 : {
+          ...c2, messages: [...c2.messages, { from:"them", text: replyText, time: timeStr() }]
+        }));
+      }, 1200);
+      return { ...c, messages: [...c.messages, newMsg] };
+    }));
+    setMsgInput("");
   };
 
   const filtered = city.trim()==="" ? profiles : profiles.filter(p=>p.city.toLowerCase().includes(city.trim().toLowerCase()));
+  const totalUnread = chats.reduce((a,c) => a + (c.messages.filter(m=>m.from==="them").length > 0 && c.id === openChatId ? 0 : 0), 0);
+  const openChat = chats.find(c => c.id === openChatId);
 
   const fs = { display:"block",width:"100%",padding:"12px 16px",background:"rgba(255,255,255,0.05)",border:"1.5px solid rgba(168,230,207,0.15)",borderRadius:14,fontSize:15,fontFamily:"'Nunito',sans-serif",color:"#e8f4e8",marginBottom:2 };
   const pBtn = { width:"100%",padding:"14px",background:"linear-gradient(135deg,#56ab91,#388d73)",border:"none",borderRadius:16,color:"#fff",fontFamily:"'Nunito',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 20px rgba(86,171,145,0.3)" };
@@ -370,7 +354,8 @@ export default function App() {
         @keyframes shimmer{0%{background-position:200% center}100%{background-position:-200% center}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
         @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @keyframes heartPop{0%{transform:scale(1)}40%{transform:scale(1.45)}100%{transform:scale(1)}}
+        @keyframes heartPop{0%{transform:scale(1)}40%{transform:scale(1.55)}70%{transform:scale(0.9)}100%{transform:scale(1)}}
+        @keyframes matchPulse{0%,100%{box-shadow:0 0 0 0 rgba(86,171,145,0.5)}50%{box-shadow:0 0 0 12px rgba(86,171,145,0)}}
         .cw:nth-child(1){animation:fadeUp 0.4s 0.04s ease both}
         .cw:nth-child(2){animation:fadeUp 0.4s 0.10s ease both}
         .cw:nth-child(3){animation:fadeUp 0.4s 0.16s ease both}
@@ -383,6 +368,8 @@ export default function App() {
         input,textarea,select{outline:none;-webkit-appearance:none;}
         input:focus,textarea:focus{border-color:#56ab91!important;box-shadow:0 0 0 3px rgba(86,171,145,.15)!important;}
         button:hover{opacity:0.9;}
+        .msg-me{background:linear-gradient(135deg,#56ab91,#388d73);color:#fff;border-radius:18px 18px 4px 18px;margin-left:auto;}
+        .msg-them{background:rgba(255,255,255,0.08);color:#e8f4e8;border-radius:18px 18px 18px 4px;border:1px solid rgba(168,230,207,0.1);}
       `}</style>
 
       <div style={{position:"fixed",inset:0,borderRadius:"50%",filter:"blur(70px)",pointerEvents:"none",zIndex:0,width:320,height:320,top:-90,right:-90,background:"rgba(86,171,145,0.07)"}}/>
@@ -390,6 +377,16 @@ export default function App() {
       <Particles/>
 
       <div style={{ maxWidth:430, minHeight:"100dvh", margin:"0 auto", display:"flex", flexDirection:"column", position:"relative", zIndex:1 }}>
+
+        {/* ── MATCH NOTIFICATION ── */}
+        {matchNotif && (
+          <MatchNotif
+            user={matchNotif}
+            t={t}
+            onWrite={() => { setMatchNotif(null); setTab("chats"); setOpenChatId(matchNotif.id); }}
+            onClose={() => setMatchNotif(null)}
+          />
+        )}
 
         {/* ── NOT LOGGED IN ── */}
         {!authState && <WelcomeScreen lang={lang} setLang={setLang} t={t} onAuth={handleAuth}/>}
@@ -400,24 +397,15 @@ export default function App() {
           <header style={{padding:"16px 20px 0"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:8,paddingBottom:4}}>
               <div>
-                <h1 style={{
-                  fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:600, letterSpacing:"-0.5px", lineHeight:1,
-                  background:"linear-gradient(90deg,#a8e6cf 0%,#56ab91 40%,#f9d976 60%,#a8e6cf 100%)",
-                  backgroundSize:"200% auto", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text",
-                  animation:"shimmer 4s linear infinite",
-                }}>{t.appName}</h1>
+                <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:600,letterSpacing:"-0.5px",lineHeight:1,background:"linear-gradient(90deg,#a8e6cf 0%,#56ab91 40%,#f9d976 60%,#a8e6cf 100%)",backgroundSize:"200% auto",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",animation:"shimmer 4s linear infinite"}}>{t.appName}</h1>
                 <p style={{fontFamily:"'Nunito',sans-serif",fontSize:10,color:"rgba(168,230,207,0.4)",letterSpacing:2.5,textTransform:"uppercase",marginTop:3}}>{t.tagline}</p>
               </div>
-
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                {/* Lang */}
                 <div style={{display:"flex",background:"rgba(255,255,255,0.05)",borderRadius:50,padding:3,gap:2,border:"1px solid rgba(168,230,207,0.1)"}}>
                   {[{code:"ua",flag:"🇺🇦"},{code:"by",flag:"🇧🇾"}].map(l=>(
                     <button key={l.code} onClick={()=>setLang(l.code)} style={{background:lang===l.code?"rgba(86,171,145,0.35)":"transparent",border:"none",borderRadius:50,width:34,height:34,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:lang===l.code?"0 0 12px rgba(86,171,145,0.3)":"none",transition:"all 0.2s"}}>{l.flag}</button>
                   ))}
                 </div>
-
-                {/* Avatar + logout */}
                 <div style={{position:"relative",cursor:"pointer"}} onClick={handleLogout} title={t.logout}>
                   <img src={authState.user.photo} alt="" style={{width:38,height:38,borderRadius:"50%",objectFit:"cover",border:`2px solid ${providerColor}`,display:"block"}}/>
                   <div style={{position:"absolute",bottom:-2,right:-2,background:providerColor,borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,border:"2px solid #0d2137"}}>
@@ -427,7 +415,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Provider badge */}
             <div style={{display:"flex",alignItems:"center",gap:8,margin:"8px 0 14px",padding:"7px 14px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(168,230,207,0.08)",borderRadius:50,width:"fit-content"}}>
               <span style={{fontSize:13}}>{providerIcon}</span>
               <span style={{fontFamily:"'Nunito',sans-serif",fontSize:12,color:"rgba(168,230,207,0.5)"}}>
@@ -436,24 +423,34 @@ export default function App() {
               <span onClick={handleLogout} style={{marginLeft:4,cursor:"pointer",fontSize:11,color:"rgba(168,230,207,0.3)"}}>✕</span>
             </div>
 
-            {/* Nav */}
-            <nav style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,background:"rgba(255,255,255,0.04)",borderRadius:18,padding:5,border:"1px solid rgba(168,230,207,0.07)"}}>
-              {[{key:"search",icon:"✦",label:t.search},{key:"profile",icon:"◎",label:t.profile},{key:"likes",icon:"❤",label:t.liked}].map(tb=>(
-                <button key={tb.key} className="nb" onClick={()=>setTab(tb.key)} style={{
+            {/* Nav — 4 tabs */}
+            <nav style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:5,background:"rgba(255,255,255,0.04)",borderRadius:18,padding:5,border:"1px solid rgba(168,230,207,0.07)"}}>
+              {[
+                {key:"search",  icon:"✦", label:t.search},
+                {key:"likes",   icon:"❤", label:t.liked},
+                {key:"chats",   icon:"💬", label:t.chats, badge: chats.length},
+                {key:"profile", icon:"◎", label:t.profile},
+              ].map(tb=>(
+                <button key={tb.key} className="nb" onClick={()=>{setTab(tb.key); if(tb.key!=="chats") setOpenChatId(null);}} style={{
                   background:tab===tb.key?"linear-gradient(135deg,rgba(86,171,145,0.45),rgba(56,141,115,0.45))":"transparent",
                   border:"none",borderRadius:13,padding:"9px 4px",
                   color:tab===tb.key?"#a8e6cf":"rgba(168,230,207,0.38)",
-                  fontFamily:"'Nunito',sans-serif",fontSize:12,fontWeight:tab===tb.key?700:400,
+                  fontFamily:"'Nunito',sans-serif",fontSize:11,fontWeight:tab===tb.key?700:400,
                   cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2,
                   boxShadow:tab===tb.key?"0 2px 14px rgba(86,171,145,0.18)":"none",
+                  position:"relative",
                 }}>
-                  <span style={{fontSize:15}}>{tb.icon}</span>{tb.label}
+                  <span style={{fontSize:14}}>{tb.icon}</span>
+                  {tb.label}
+                  {tb.badge > 0 && (
+                    <span style={{position:"absolute",top:5,right:8,background:"#56ab91",borderRadius:"50%",width:16,height:16,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",border:"1.5px solid #0d2137"}}>{tb.badge}</span>
+                  )}
                 </button>
               ))}
             </nav>
           </header>
 
-          <main style={{flex:1,padding:"20px 16px 32px",overflowY:"auto"}}>
+          <main style={{flex:1,padding:"20px 16px 32px",overflowY:"auto",display:"flex",flexDirection:"column"}}>
 
             {/* SEARCH */}
             {tab==="search" && (
@@ -476,6 +473,11 @@ export default function App() {
                             {calcAge(p.birth)} {t.years}
                           </div>
                           {p.liked && <div style={{position:"absolute",top:14,right:14,background:"rgba(86,171,145,0.85)",borderRadius:"50%",width:34,height:34,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,animation:"pulse 2s infinite"}}>❤️</div>}
+                          {p.likedMeBack && !p.liked && (
+                            <div style={{position:"absolute",top:14,right:14,background:"rgba(249,217,118,0.2)",border:"1px solid rgba(249,217,118,0.4)",borderRadius:50,padding:"4px 10px",fontFamily:"'Nunito',sans-serif",fontSize:10,color:"#f9d976",fontWeight:700,letterSpacing:0.5}}>
+                              лайкнула тебе ❤
+                            </div>
+                          )}
                           <div style={{position:"absolute",bottom:16,left:18,right:18}}>
                             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:500,color:"#e8f4e8",textShadow:"0 2px 8px rgba(0,0,0,0.5)"}}>{p.name}</div>
                             <div style={{fontFamily:"'Nunito',sans-serif",fontSize:12,color:"rgba(168,230,207,0.7)",marginTop:3}}>🌿 {p.city}</div>
@@ -499,6 +501,121 @@ export default function App() {
               </div>
             )}
 
+            {/* LIKES */}
+            {tab==="likes" && (
+              <div style={{animation:"fadeUp 0.35s ease"}}>
+                <p style={{textAlign:"center",fontFamily:"'Nunito',sans-serif",fontSize:13,color:"rgba(168,230,207,0.45)",marginBottom:20,letterSpacing:1}}>❤️ {whoLikedMe.length} {t.likedMe}</p>
+                <div style={{display:"flex",flexDirection:"column",gap:14}}>
+                  {whoLikedMe.map((p,i)=>(
+                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:16,background:"linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))",borderRadius:20,padding:"14px 16px",border:"1px solid rgba(168,230,207,0.09)",animation:`fadeUp 0.4s ${i*0.08}s ease both`}}>
+                      <div style={{position:"relative",flexShrink:0}}>
+                        <img src={p.photo} alt={p.name} style={{width:66,height:66,borderRadius:"50%",objectFit:"cover",border:"2.5px solid rgba(86,171,145,0.35)",display:"block"}}/>
+                        <div style={{position:"absolute",bottom:0,right:0,background:"#56ab91",borderRadius:"50%",width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,border:"2px solid #0d2137"}}>❤</div>
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:21,fontWeight:500,color:"#e8f4e8"}}>{p.name}</div>
+                        <div style={{fontFamily:"'Nunito',sans-serif",fontSize:12,color:"rgba(168,230,207,0.45)",marginTop:2}}>{calcAge(p.birth)} {t.years} · 🌿 {p.city}</div>
+                      </div>
+                      <button
+                        onClick={() => handleReply(p)}
+                        style={{flexShrink:0,background:"linear-gradient(135deg,#56ab91,#388d73)",border:"none",borderRadius:14,padding:"9px 13px",color:"#fff",fontFamily:"'Nunito',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}
+                      >{t.replyBtn}</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CHATS */}
+            {tab==="chats" && (
+              <div style={{animation:"fadeUp 0.35s ease",flex:1,display:"flex",flexDirection:"column"}}>
+                {/* Chat list */}
+                {!openChat && (
+                  <>
+                    {chats.length === 0 ? (
+                      <div style={{textAlign:"center",padding:"60px 20px",flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+                        <div style={{fontSize:48,marginBottom:16,opacity:0.4}}>💬</div>
+                        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:"rgba(168,230,207,0.5)",marginBottom:8}}>{t.noChats}</div>
+                        <div style={{fontFamily:"'Nunito',sans-serif",fontSize:13,color:"rgba(168,230,207,0.3)",lineHeight:1.6,maxWidth:260}}>{t.noChatsHint}</div>
+                      </div>
+                    ) : (
+                      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                        {chats.map((c,i) => {
+                          const lastMsg = c.messages[c.messages.length - 1];
+                          return (
+                            <div key={c.id} onClick={() => setOpenChatId(c.id)} style={{display:"flex",alignItems:"center",gap:14,background:"linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))",borderRadius:20,padding:"14px 16px",border:"1px solid rgba(168,230,207,0.09)",cursor:"pointer",animation:`fadeUp 0.4s ${i*0.07}s ease both`,transition:"background 0.2s"}}>
+                              <div style={{position:"relative",flexShrink:0}}>
+                                <img src={c.user.photo} alt={c.user.name} style={{width:56,height:56,borderRadius:"50%",objectFit:"cover",border:"2.5px solid rgba(86,171,145,0.4)",display:"block"}}/>
+                                <div style={{position:"absolute",bottom:0,right:0,background:"linear-gradient(135deg,#56ab91,#388d73)",borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,border:"2px solid #0d2137"}}>💚</div>
+                              </div>
+                              <div style={{flex:1,minWidth:0}}>
+                                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:"#e8f4e8"}}>{c.user.name}</div>
+                                <div style={{fontFamily:"'Nunito',sans-serif",fontSize:12,color:"rgba(168,230,207,0.4)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                                  {lastMsg ? (lastMsg.from==="me" ? "Ти: " : "") + lastMsg.text : "💚 Взаємний лайк"}
+                                </div>
+                              </div>
+                              {lastMsg && (
+                                <div style={{fontFamily:"'Nunito',sans-serif",fontSize:10,color:"rgba(168,230,207,0.3)",flexShrink:0}}>{lastMsg.time}</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Open chat */}
+                {openChat && (
+                  <div style={{display:"flex",flexDirection:"column",flex:1,minHeight:0}}>
+                    {/* Chat header */}
+                    <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16,paddingBottom:14,borderBottom:"1px solid rgba(168,230,207,0.08)"}}>
+                      <button onClick={()=>setOpenChatId(null)} style={{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(168,230,207,0.12)",borderRadius:12,padding:"8px 12px",color:"#a8e6cf",cursor:"pointer",fontFamily:"'Nunito',sans-serif",fontSize:14,fontWeight:700,flexShrink:0}}>{t.back}</button>
+                      <img src={openChat.user.photo} alt="" style={{width:42,height:42,borderRadius:"50%",objectFit:"cover",border:"2px solid rgba(86,171,145,0.4)",flexShrink:0}}/>
+                      <div>
+                        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:500,color:"#e8f4e8"}}>{openChat.user.name}</div>
+                        <div style={{fontFamily:"'Nunito',sans-serif",fontSize:11,color:"rgba(168,230,207,0.4)"}}>💚 {lang==="ua"?"Взаємний лайк":"Взаимный лайк"}</div>
+                      </div>
+                    </div>
+
+                    {/* Messages */}
+                    <div style={{flex:1,overflowY:"auto",display:"flex",flexDirection:"column",gap:10,marginBottom:14,paddingRight:4}}>
+                      {openChat.messages.length === 0 && (
+                        <div style={{textAlign:"center",padding:"30px 0",fontFamily:"'Nunito',sans-serif",fontSize:13,color:"rgba(168,230,207,0.3)"}}>
+                          💚 {lang==="ua"?"Напишіть першими!":"Напишите первыми!"}
+                        </div>
+                      )}
+                      {openChat.messages.map((m, i) => (
+                        <div key={i} style={{display:"flex",flexDirection:"column",alignItems:m.from==="me"?"flex-end":"flex-start"}}>
+                          <div className={m.from==="me"?"msg-me":"msg-them"} style={{maxWidth:"75%",padding:"10px 14px",fontFamily:"'Nunito',sans-serif",fontSize:14,lineHeight:1.5}}>
+                            {m.text}
+                          </div>
+                          <div style={{fontFamily:"'Nunito',sans-serif",fontSize:10,color:"rgba(168,230,207,0.28)",marginTop:3,paddingLeft:4,paddingRight:4}}>{m.time}</div>
+                        </div>
+                      ))}
+                      <div ref={messagesEndRef}/>
+                    </div>
+
+                    {/* Input */}
+                    <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
+                      <input
+                        type="text"
+                        value={msgInput}
+                        onChange={e=>setMsgInput(e.target.value)}
+                        onKeyDown={e=>e.key==="Enter" && sendMessage(openChat.id)}
+                        placeholder={t.msgPlaceholder}
+                        style={{flex:1,padding:"12px 16px",background:"rgba(255,255,255,0.06)",border:"1.5px solid rgba(168,230,207,0.14)",borderRadius:20,fontSize:14,fontFamily:"'Nunito',sans-serif",color:"#e8f4e8"}}
+                      />
+                      <button
+                        onClick={()=>sendMessage(openChat.id)}
+                        style={{width:46,height:46,borderRadius:"50%",background:msgInput.trim()?"linear-gradient(135deg,#56ab91,#388d73)":"rgba(86,171,145,0.15)",border:"none",color:msgInput.trim()?"#fff":"rgba(168,230,207,0.3)",fontSize:18,cursor:msgInput.trim()?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",boxShadow:msgInput.trim()?"0 4px 16px rgba(86,171,145,0.35)":"none"}}
+                      >{t.send}</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* PROFILE */}
             {tab==="profile" && myProfile && (
               <div style={{animation:"fadeUp 0.35s ease"}}>
@@ -510,7 +627,6 @@ export default function App() {
                       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:30,fontWeight:500,color:"#e8f4e8"}}>{myProfile.name}</div>
                       <div style={{fontFamily:"'Nunito',sans-serif",fontSize:13,color:"rgba(168,230,207,0.65)",marginTop:3}}>{calcAge(myProfile.birth)} {t.years} · 🌿 {myProfile.city}</div>
                     </div>
-                    {/* Provider tag on photo */}
                     <div style={{position:"absolute",top:14,right:14,background:"rgba(8,20,14,0.7)",backdropFilter:"blur(8px)",border:`1px solid ${providerColor}`,borderRadius:50,padding:"5px 12px",display:"flex",alignItems:"center",gap:6}}>
                       <span style={{fontSize:13}}>{providerIcon}</span>
                       <span style={{fontFamily:"'Nunito',sans-serif",fontSize:11,color:providerColor,fontWeight:700}}>{authState.user.handle||authState.provider}</span>
@@ -540,28 +656,6 @@ export default function App() {
                       </>
                     )}
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* LIKES */}
-            {tab==="likes" && (
-              <div style={{animation:"fadeUp 0.35s ease"}}>
-                <p style={{textAlign:"center",fontFamily:"'Nunito',sans-serif",fontSize:13,color:"rgba(168,230,207,0.45)",marginBottom:20,letterSpacing:1}}>❤️ {whoLikedMe.length} {t.likedMe}</p>
-                <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                  {whoLikedMe.map((p,i)=>(
-                    <div key={p.id} style={{display:"flex",alignItems:"center",gap:16,background:"linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))",borderRadius:20,padding:"14px 16px",border:"1px solid rgba(168,230,207,0.09)",animation:`fadeUp 0.4s ${i*0.08}s ease both`}}>
-                      <div style={{position:"relative",flexShrink:0}}>
-                        <img src={p.photo} alt={p.name} style={{width:66,height:66,borderRadius:"50%",objectFit:"cover",border:"2.5px solid rgba(86,171,145,0.35)",display:"block"}}/>
-                        <div style={{position:"absolute",bottom:0,right:0,background:"#56ab91",borderRadius:"50%",width:20,height:20,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,border:"2px solid #0d2137"}}>❤</div>
-                      </div>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:21,fontWeight:500,color:"#e8f4e8"}}>{p.name}</div>
-                        <div style={{fontFamily:"'Nunito',sans-serif",fontSize:12,color:"rgba(168,230,207,0.45)",marginTop:2}}>{calcAge(p.birth)} {t.years} · 🌿 {p.city}</div>
-                      </div>
-                      <button onClick={()=>setTab("search")} style={{flexShrink:0,background:"linear-gradient(135deg,#56ab91,#388d73)",border:"none",borderRadius:14,padding:"9px 13px",color:"#fff",fontFamily:"'Nunito',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>{t.replyBtn}</button>
-                    </div>
-                  ))}
                 </div>
               </div>
             )}
