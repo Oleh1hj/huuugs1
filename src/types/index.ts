@@ -47,5 +47,5 @@ export interface LikeResult {
 
 // ─── UI types ────────────────────────────────────────────────────
 
-export type Lang = 'ua' | 'by';
+export type Lang = 'ua' | 'by' | 'pl' | 'en';
 export type TabKey = 'search' | 'likes' | 'chats' | 'profile';

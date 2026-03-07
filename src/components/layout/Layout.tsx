@@ -49,7 +49,7 @@ export function Layout() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               {/* Lang switcher */}
               <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 50, padding: 3, gap: 2, border: `1px solid ${theme.colors.glassBorder}` }}>
-                {(['ua', 'by'] as const).map((code) => (
+                {(['ua', 'by', 'pl', 'en'] as const).map((code) => (
                   <button key={code} onClick={() => setLang(code)} style={{
                     background: lang === code ? 'rgba(86,171,145,0.35)' : 'transparent',
                     border: 'none', borderRadius: 50, width: 34, height: 34,
@@ -57,7 +57,7 @@ export function Layout() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     boxShadow: lang === code ? '0 0 12px rgba(86,171,145,0.3)' : 'none',
                     transition: 'all 0.2s',
-                  }}>{code === 'ua' ? '🇺🇦' : '🇧🇾'}</button>
+                  }}>{code === 'ua' ? '🇺🇦' : code === 'by' ? '🇧🇾' : code === 'pl' ? '🇵🇱' : '🇬🇧'}</button>
                 ))}
               </div>
 

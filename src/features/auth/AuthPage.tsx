@@ -55,9 +55,9 @@ export function AuthPage() {
 
       {/* Lang */}
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 50, padding: 3, gap: 2, border: `1px solid ${theme.colors.glassBorder}`, zIndex: 2 }}>
-        {(['ua', 'by'] as const).map((code) => (
+        {(['ua', 'by', 'pl', 'en'] as const).map((code) => (
           <button key={code} onClick={() => setLang(code)} style={{ background: lang === code ? 'rgba(86,171,145,0.35)' : 'transparent', border: 'none', borderRadius: 50, width: 38, height: 38, fontSize: 21, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
-            {code === 'ua' ? '🇺🇦' : '🇧🇾'}
+            {code === 'ua' ? '🇺🇦' : code === 'by' ? '🇧🇾' : code === 'pl' ? '🇵🇱' : '🇬🇧'}
           </button>
         ))}
       </div>
@@ -81,7 +81,9 @@ export function AuthPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4, marginBottom: 24 }}>
             {(['login', 'register'] as const).map((m) => (
               <button key={m} onClick={() => setMode(m)} style={{ background: mode === m ? g.greenBtn : 'transparent', border: 'none', borderRadius: 11, padding: '10px', color: mode === m ? '#fff' : theme.colors.textMuted, fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
-                {m === 'login' ? (lang === 'ua' ? 'Вхід' : 'Уваход') : (lang === 'ua' ? 'Реєстрація' : 'Рэгістрацыя')}
+                {m === 'login'
+                  ? { ua: 'Вхід', by: 'Уваход', pl: 'Logowanie', en: 'Log in' }[lang]
+                  : { ua: 'Реєстрація', by: 'Рэгістрацыя', pl: 'Rejestracja', en: 'Sign up' }[lang]}
               </button>
             ))}
           </div>
@@ -92,19 +94,19 @@ export function AuthPage() {
               <Input label={lang === 'ua' ? 'Пароль' : 'Пароль'} type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
               {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b8a', textAlign: 'center' }}>{error}</div>}
               <Button type="submit" fullWidth loading={loginMutation.isPending} style={{ marginTop: 8 }}>
-                {lang === 'ua' ? 'Увійти' : 'Увайсці'}
+                {{ ua: 'Увійти', by: 'Увайсці', pl: 'Zaloguj się', en: 'Log in' }[lang]}
               </Button>
             </form>
           ) : (
             <form onSubmit={registerForm.handleSubmit((d) => registerMutation.mutate(d))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Input label={lang === 'ua' ? "Ім'я" : 'Імя'} placeholder="Олег" error={registerForm.formState.errors.name?.message} {...registerForm.register('name')} />
+              <Input label={{ ua: "Ім'я", by: 'Імя', pl: 'Imię', en: 'Name' }[lang]} placeholder="Олег" error={registerForm.formState.errors.name?.message} {...registerForm.register('name')} />
               <Input label="Email" type="email" placeholder="you@example.com" error={registerForm.formState.errors.email?.message} {...registerForm.register('email')} />
-              <Input label={lang === 'ua' ? 'Пароль' : 'Пароль'} type="password" placeholder="мін. 8 символів" error={registerForm.formState.errors.password?.message} {...registerForm.register('password')} />
-              <Input label={lang === 'ua' ? 'Дата народження' : 'Дата нараджэння'} type="date" error={registerForm.formState.errors.birth?.message} {...registerForm.register('birth')} />
-              <Input label={lang === 'ua' ? 'Місто' : 'Горад'} placeholder={lang === 'ua' ? 'Київ' : 'Мінск'} error={registerForm.formState.errors.city?.message} {...registerForm.register('city')} />
+              <Input label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]} type="password" placeholder="мін. 8 символів" error={registerForm.formState.errors.password?.message} {...registerForm.register('password')} />
+              <Input label={{ ua: 'Дата народження', by: 'Дата нараджэння', pl: 'Data urodzenia', en: 'Date of birth' }[lang]} type="date" error={registerForm.formState.errors.birth?.message} {...registerForm.register('birth')} />
+              <Input label={{ ua: 'Місто', by: 'Горад', pl: 'Miasto', en: 'City' }[lang]} placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]} error={registerForm.formState.errors.city?.message} {...registerForm.register('city')} />
               {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b8a', textAlign: 'center' }}>{error}</div>}
               <Button type="submit" fullWidth loading={registerMutation.isPending} style={{ marginTop: 8 }}>
-                {lang === 'ua' ? 'Зареєструватись' : 'Зарэгіструвацца'}
+                {{ ua: 'Зареєструватись', by: 'Зарэгіструвацца', pl: 'Zarejestruj się', en: 'Sign up' }[lang]}
               </Button>
             </form>
           )}
