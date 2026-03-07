@@ -1,0 +1,34 @@
+services:
+  # Backend API
+  - type: web
+    name: huugs-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        sync: false  # Set to your frontend URL after deploying
+      - key: DATABASE_URL
+        fromDatabase:
+          name: huugs-db
+          property: connectionString
+
+  # Frontend (Static Site)
+  - type: web
+    name: huugs-client
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false  # Set to https://huugs-api.onrender.com/api/v1
+
+databases:
+  - name: huugs-db
+    databaseName: huugs
+    user: huugs

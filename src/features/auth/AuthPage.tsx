@@ -56,8 +56,8 @@ export function AuthPage() {
       {/* Lang */}
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 50, padding: 3, gap: 2, border: `1px solid ${theme.colors.glassBorder}`, zIndex: 2 }}>
         {(['ua', 'by', 'pl', 'en'] as const).map((code) => (
-          <button key={code} onClick={() => setLang(code)} style={{ background: lang === code ? 'rgba(86,171,145,0.35)' : 'transparent', border: 'none', borderRadius: 50, width: 38, height: 38, fontSize: 21, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}>
-            {code === 'ua' ? '🇺🇦' : code === 'by' ? '🇧🇾' : code === 'pl' ? '🇵🇱' : '🇬🇧'}
+          <button key={code} onClick={() => setLang(code)} style={{ background: lang === code ? 'rgba(86,171,145,0.35)' : 'transparent', border: 'none', borderRadius: 50, width: 38, height: 38, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', color: lang === code ? '#56ab91' : 'rgba(255,255,255,0.7)', letterSpacing: '0.5px' }}>
+            {code === 'ua' ? 'UA' : code === 'by' ? 'BY' : code === 'pl' ? 'PL' : 'EN'}
           </button>
         ))}
       </div>

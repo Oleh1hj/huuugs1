@@ -12,19 +12,24 @@ import { ChatsModule } from './chats/chats.module';
     // Rate limiting: 100 req / 60s per IP
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
 
-    // Database — SQLite for dev, swap to postgres in prod via env
-    TypeOrmModule.forRoot({
-      type: (process.env.DB_TYPE as any) ?? 'better-sqlite3',
-      database: process.env.DB_NAME ?? 'huugs.db',
-      // For PostgreSQL:
-      // host: process.env.DB_HOST,
-      // port: +process.env.DB_PORT,
-      // username: process.env.DB_USER,
-      // password: process.env.DB_PASS,
-      autoLoadEntities: true,
-      synchronize: process.env.NODE_ENV !== 'production', // use migrations in prod
-      logging: process.env.NODE_ENV === 'development',
-    }),
+    // Database — SQLite for dev, PostgreSQL in prod via DATABASE_URL
+    TypeOrmModule.forRoot(
+      process.env.DATABASE_URL
+        ? {
+            type: 'postgres',
+            url: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false },
+            autoLoadEntities: true,
+            synchronize: true,
+          }
+        : {
+            type: 'better-sqlite3' as any,
+            database: process.env.DB_NAME ?? 'huugs.db',
+            autoLoadEntities: true,
+            synchronize: true,
+            logging: process.env.NODE_ENV === 'development',
+          },
+    ),
 
     AuthModule,
     UsersModule,
