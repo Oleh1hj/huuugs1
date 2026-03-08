@@ -48,7 +48,7 @@ export function ChatRoom() {
       }
     };
     socket.on('typing', handler);
-    return () => socket.off('typing', handler);
+    return () => { socket.off('typing', handler); };
   }, [me?.id]);
 
   useEffect(() => {
