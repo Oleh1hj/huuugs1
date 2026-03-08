@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
@@ -63,6 +63,26 @@ export function ProfilePage() {
   const t = useUiTranslations();
   const [editMode, setEditMode] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+
+  // Reset form with fresh user data every time edit mode is opened
+  useEffect(() => {
+    if (editMode && user) {
+      reset({
+        name: user.name ?? '',
+        birth: user.birth ?? '',
+        city: user.city ?? '',
+        bio: user.bio ?? '',
+        gender: user.gender ?? 'male',
+        language: user.language ?? 'Українська',
+        lookingForGender: user.lookingForGender ?? 'any',
+        lookingForCity: user.lookingForCity ?? '',
+        lookingForAgeMin: user.lookingForAgeMin ?? '',
+        lookingForAgeMax: user.lookingForAgeMax ?? '',
+        photo: user.photo ?? '',
+      });
+      setPhotoPreview('');
+    }
+  }, [editMode]); // eslint-disable-line
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm({
