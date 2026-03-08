@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.local
+server/node_modules/
+server/dist/
+*.db
+*.db-journal
