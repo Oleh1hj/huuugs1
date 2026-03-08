@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { chatsApi } from '@/api/chats.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useSendMessage, useTyping } from '@/hooks/useSocket';
+import { getSocket } from '@/lib/socket';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
 import { Message, Conversation } from '@/types';
@@ -37,9 +38,14 @@ export function ChatRoom() {
     refetchInterval: false, // rely on WebSocket
   });
 
+  // Join socket room for this conversation
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit('join', conversationId);
+  }, [conversationId]);
+
   // Show typing indicator from socket events
   useEffect(() => {
-    const { getSocket } = require('@/lib/socket');
     const socket = getSocket();
     const handler = ({ userId }: { userId: string }) => {
       if (userId !== me?.id) {
@@ -48,7 +54,7 @@ export function ChatRoom() {
       }
     };
     socket.on('typing', handler);
-    return () => socket.off('typing', handler);
+    return () => { socket.off('typing', handler); };
   }, [me?.id]);
 
   useEffect(() => {

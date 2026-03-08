@@ -110,12 +110,18 @@ export function ProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  const [saveError, setSaveError] = useState<string>('');
+
   const updateMutation = useMutation({
     mutationFn: profilesApi.updateMe,
     onSuccess: (updated) => {
       updateUser(updated);
       setEditMode(false);
       setPhotoPreview('');
+      setSaveError('');
+    },
+    onError: () => {
+      setSaveError('Помилка збереження. Перевір дані та спробуй ще раз.');
     },
   });
 
@@ -170,7 +176,15 @@ export function ProfilePage() {
               <Button fullWidth variant="ghost" onClick={logout} style={{ marginTop: 10 }}>{t.logout}</Button>
             </>
           ) : (
-            <form onSubmit={handleSubmit((d) => updateMutation.mutate(d as any))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <form onSubmit={handleSubmit((d) => {
+              const payload = {
+                ...d,
+                lookingForAgeMin: d.lookingForAgeMin !== '' && d.lookingForAgeMin != null ? Number(d.lookingForAgeMin) : undefined,
+                lookingForAgeMax: d.lookingForAgeMax !== '' && d.lookingForAgeMax != null ? Number(d.lookingForAgeMax) : undefined,
+              };
+              setSaveError('');
+              updateMutation.mutate(payload as any);
+            })} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
               {/* Photo */}
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
@@ -247,9 +261,14 @@ export function ProfilePage() {
                 </div>
               </div>
 
+              {saveError && (
+                <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: theme.radius.md, padding: '10px 14px' }}>
+                  {saveError}
+                </div>
+              )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <Button type="submit" fullWidth loading={updateMutation.isPending}>{t.saveBtn}</Button>
-                <Button type="button" variant="ghost" fullWidth onClick={() => { reset(); setPhotoPreview(''); setEditMode(false); }}>{t.cancelBtn}</Button>
+                <Button type="button" variant="ghost" fullWidth onClick={() => { reset(); setPhotoPreview(''); setEditMode(false); setSaveError(''); }}>{t.cancelBtn}</Button>
               </div>
             </form>
           )}

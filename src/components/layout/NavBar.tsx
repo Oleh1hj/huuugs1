@@ -30,8 +30,12 @@ export function NavBar() {
     enabled: !!user,
   });
 
+  const unreadChats = conversations?.filter(
+    (c) => c.lastMessage && !c.lastMessage.isRead && c.lastMessage.senderId !== user?.id,
+  ).length ?? 0;
+
   const badges: Record<string, number> = {
-    '/chats': conversations?.length ?? 0,
+    '/chats': unreadChats,
     '/support': supportUnread?.count ?? 0,
   };
 

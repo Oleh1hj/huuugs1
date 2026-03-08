@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Like } from './like.entity';
 import { ChatsService } from '../chats/chats.service';
+import { ChatsGateway } from '../chats/chats.gateway';
 import { UsersService } from '../users/users.service';
 
 export interface LikeResult {
@@ -16,6 +17,7 @@ export class LikesService {
   constructor(
     @InjectRepository(Like) private readonly repo: Repository<Like>,
     private readonly chatsService: ChatsService,
+    private readonly chatsGateway: ChatsGateway,
     private readonly usersService: UsersService,
   ) {}
 
@@ -55,6 +57,16 @@ export class LikesService {
         fromUserId,
         toUserId,
       );
+
+      // Notify User B (the one who was liked) via WebSocket
+      const fromUser = await this.usersService.findById(fromUserId);
+      this.chatsGateway.notifyMatch(toUserId, {
+        partnerId: fromUserId,
+        partnerName: fromUser?.name ?? '',
+        partnerPhoto: fromUser?.photo ?? null,
+        conversationId: conversation.id,
+      });
+
       return { liked: true, match: true, conversationId: conversation.id };
     }
 
