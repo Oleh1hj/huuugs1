@@ -34,24 +34,31 @@ export class ChatsService {
     if (conv) await this.convRepo.remove(conv);
   }
 
-  async getMyConversations(userId: string): Promise<Conversation[]> {
-    return this.convRepo
+  async getMyConversations(userId: string): Promise<any[]> {
+    const convs = await this.convRepo
       .createQueryBuilder('c')
       .leftJoinAndSelect('c.userA', 'ua')
       .leftJoinAndSelect('c.userB', 'ub')
-      .leftJoin(
-        (qb) =>
-          qb
-            .select('m.conversationId', 'cid')
-            .addSelect('MAX(m.createdAt)', 'lastAt')
-            .from(Message, 'm')
-            .groupBy('m.conversationId'),
-        'last',
-        'last.cid = c.id',
-      )
       .where('c.userAId = :uid OR c.userBId = :uid', { uid: userId })
-      .orderBy('last.lastAt', 'DESC', 'NULLS LAST')
       .getMany();
+
+    // Attach last message to each conversation (for preview + sorting)
+    const withLastMsg = await Promise.all(
+      convs.map(async (conv) => {
+        const lastMessage = await this.msgRepo.findOne({
+          where: { conversationId: conv.id },
+          order: { createdAt: 'DESC' },
+        });
+        return Object.assign(conv, { lastMessage: lastMessage ?? null });
+      }),
+    );
+
+    // Sort newest conversation first
+    return withLastMsg.sort((a, b) => {
+      const at = a.lastMessage?.createdAt ?? a.createdAt;
+      const bt = b.lastMessage?.createdAt ?? b.createdAt;
+      return new Date(bt).getTime() - new Date(at).getTime();
+    });
   }
 
   async getMessages(conversationId: string, limit = 50, before?: Date): Promise<Message[]> {
