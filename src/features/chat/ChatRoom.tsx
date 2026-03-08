@@ -38,6 +38,12 @@ export function ChatRoom() {
     refetchInterval: false, // rely on WebSocket
   });
 
+  // Join socket room for this conversation
+  useEffect(() => {
+    const socket = getSocket();
+    socket.emit('join', conversationId);
+  }, [conversationId]);
+
   // Show typing indicator from socket events
   useEffect(() => {
     const socket = getSocket();
