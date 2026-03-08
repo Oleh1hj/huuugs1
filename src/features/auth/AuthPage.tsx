@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/Button';
 import { Particles } from '@/components/Particles';
 import { theme, g } from '@/styles/theme';
 
+const LANGUAGES = ['Українська', 'Білоруська', 'Польська', 'Англійська', 'Російська', 'Інша'];
+
 const loginSchema = z.object({
   email: z.string().email('Невірний email'),
   password: z.string().min(8, 'Мін. 8 символів'),
@@ -21,10 +23,70 @@ const registerSchema = loginSchema.extend({
   name: z.string().min(2, 'Мін. 2 символи').max(50),
   birth: z.string().min(1, 'Вкажи дату народження'),
   city: z.string().min(2, 'Вкажи місто').max(100),
+  gender: z.enum(['male', 'female'], { required_error: 'Вкажи стать' }),
+  language: z.string().min(1, 'Вкажи мову'),
+  bio: z.string().max(500).optional(),
+  lookingForGender: z.enum(['male', 'female', 'any']),
+  lookingForCity: z.string().max(100).optional(),
+  lookingForAgeMin: z.coerce.number().int().min(18).max(100).optional().or(z.literal('')),
+  lookingForAgeMax: z.coerce.number().int().min(18).max(100).optional().or(z.literal('')),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
+
+// Inline toggle for binary choices
+function ToggleGroup({ options, value, onChange }: {
+  options: { label: string; value: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          style={{
+            flex: 1, padding: '10px 8px',
+            background: value === o.value ? 'rgba(86,171,145,0.3)' : 'rgba(255,255,255,0.05)',
+            border: `1.5px solid ${value === o.value ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`,
+            borderRadius: theme.radius.md,
+            color: value === o.value ? theme.colors.green.light : theme.colors.textMuted,
+            fontFamily: theme.fonts.sans, fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', transition: 'all 0.2s',
+          }}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <div style={{
+      fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2,
+      textTransform: 'uppercase', color: theme.colors.textFaint,
+      marginBottom: 10, marginTop: 6,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function FieldLabel({ children }: { children: string }) {
+  return (
+    <div style={{
+      fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2,
+      textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 6,
+    }}>
+      {children}
+    </div>
+  );
+}
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -33,7 +95,10 @@ export function AuthPage() {
   const navigate = useNavigate();
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-  const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
+  const registerForm = useForm<RegisterForm>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { gender: 'male', lookingForGender: 'any', language: 'Українська' },
+  });
 
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: LoginForm) => authApi.login(email, password),
@@ -41,12 +106,78 @@ export function AuthPage() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: (data: RegisterForm) => authApi.register(data),
+    mutationFn: (data: RegisterForm) => authApi.register({
+      ...data,
+      lookingForAgeMin: data.lookingForAgeMin ? Number(data.lookingForAgeMin) : undefined,
+      lookingForAgeMax: data.lookingForAgeMax ? Number(data.lookingForAgeMax) : undefined,
+    }),
     onSuccess: (data) => { setAuth(data.user, data.accessToken, data.refreshToken); navigate('/search'); },
   });
 
   const isLogin = mode === 'login';
   const error = loginMutation.error?.message ?? registerMutation.error?.message;
+
+  const genderVal = registerForm.watch('gender');
+  const lookingForGenderVal = registerForm.watch('lookingForGender');
+
+  const labels = {
+    ua: {
+      aboutMe: 'ПРО СЕБЕ',
+      lookingFor: 'КОГО ШУКАЮ',
+      male: 'Хлопець',
+      female: 'Дівчина',
+      any: 'Всі',
+      gender: 'Стать',
+      language: 'Мова спілкування',
+      bio: 'Про себе (необов\'язково)',
+      lookingGender: 'Шукаю',
+      lookingCity: 'Місто (необов\'язково)',
+      ageFrom: 'Вік від',
+      ageTo: 'до',
+    },
+    by: {
+      aboutMe: 'ПРА СЯБЕ',
+      lookingFor: 'КАГО ШУКАЮ',
+      male: 'Хлопец',
+      female: 'Дзяўчына',
+      any: 'Усе',
+      gender: 'Пол',
+      language: 'Мова зносін',
+      bio: 'Пра сябе (неабавязкова)',
+      lookingGender: 'Шукаю',
+      lookingCity: 'Горад (неабавязкова)',
+      ageFrom: 'Узрост ад',
+      ageTo: 'да',
+    },
+    pl: {
+      aboutMe: 'O SOBIE',
+      lookingFor: 'KOGO SZUKAM',
+      male: 'Chłopak',
+      female: 'Dziewczyna',
+      any: 'Wszyscy',
+      gender: 'Płeć',
+      language: 'Język',
+      bio: 'O sobie (opcjonalnie)',
+      lookingGender: 'Szukam',
+      lookingCity: 'Miasto (opcjonalnie)',
+      ageFrom: 'Wiek od',
+      ageTo: 'do',
+    },
+    en: {
+      aboutMe: 'ABOUT ME',
+      lookingFor: 'LOOKING FOR',
+      male: 'Male',
+      female: 'Female',
+      any: 'Anyone',
+      gender: 'Gender',
+      language: 'Language',
+      bio: 'About me (optional)',
+      lookingGender: 'Looking for',
+      lookingCity: 'City (optional)',
+      ageFrom: 'Age from',
+      ageTo: 'to',
+    },
+  }[lang];
 
   return (
     <div style={{ minHeight: '100dvh', background: g.bg, position: 'relative', overflowX: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
@@ -62,7 +193,7 @@ export function AuthPage() {
         ))}
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 360 }}>
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 380 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 20px' }}>
@@ -91,7 +222,7 @@ export function AuthPage() {
           {isLogin ? (
             <form onSubmit={loginForm.handleSubmit((d) => loginMutation.mutate(d))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Input label="Email" type="email" placeholder="you@example.com" error={loginForm.formState.errors.email?.message} {...loginForm.register('email')} />
-              <Input label={lang === 'ua' ? 'Пароль' : 'Пароль'} type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
+              <Input label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]} type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
               {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b8a', textAlign: 'center' }}>{error}</div>}
               <Button type="submit" fullWidth loading={loginMutation.isPending} style={{ marginTop: 8 }}>
                 {{ ua: 'Увійти', by: 'Увайсці', pl: 'Zaloguj się', en: 'Log in' }[lang]}
@@ -99,12 +230,153 @@ export function AuthPage() {
             </form>
           ) : (
             <form onSubmit={registerForm.handleSubmit((d) => registerMutation.mutate(d))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Input label={{ ua: "Ім'я", by: 'Імя', pl: 'Imię', en: 'Name' }[lang]} placeholder="Олег" error={registerForm.formState.errors.name?.message} {...registerForm.register('name')} />
-              <Input label="Email" type="email" placeholder="you@example.com" error={registerForm.formState.errors.email?.message} {...registerForm.register('email')} />
-              <Input label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]} type="password" placeholder="мін. 8 символів" error={registerForm.formState.errors.password?.message} {...registerForm.register('password')} />
-              <Input label={{ ua: 'Дата народження', by: 'Дата нараджэння', pl: 'Data urodzenia', en: 'Date of birth' }[lang]} type="date" error={registerForm.formState.errors.birth?.message} {...registerForm.register('birth')} />
-              <Input label={{ ua: 'Місто', by: 'Горад', pl: 'Miasto', en: 'City' }[lang]} placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]} error={registerForm.formState.errors.city?.message} {...registerForm.register('city')} />
+
+              {/* ── ПРО СЕБЕ ── */}
+              <SectionLabel>{labels.aboutMe}</SectionLabel>
+
+              <Input
+                label={{ ua: "Ім'я", by: 'Імя', pl: 'Imię', en: 'Name' }[lang]}
+                placeholder="Олег"
+                error={registerForm.formState.errors.name?.message}
+                {...registerForm.register('name')}
+              />
+              <Input
+                label="Email" type="email" placeholder="you@example.com"
+                error={registerForm.formState.errors.email?.message}
+                {...registerForm.register('email')}
+              />
+              <Input
+                label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]}
+                type="password" placeholder="мін. 8 символів"
+                error={registerForm.formState.errors.password?.message}
+                {...registerForm.register('password')}
+              />
+              <Input
+                label={{ ua: 'Дата народження', by: 'Дата нараджэння', pl: 'Data urodzenia', en: 'Date of birth' }[lang]}
+                type="date"
+                error={registerForm.formState.errors.birth?.message}
+                {...registerForm.register('birth')}
+              />
+              <Input
+                label={{ ua: 'Місто', by: 'Горад', pl: 'Miasto', en: 'City' }[lang]}
+                placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]}
+                error={registerForm.formState.errors.city?.message}
+                {...registerForm.register('city')}
+              />
+
+              {/* Стать */}
+              <div>
+                <FieldLabel>{labels.gender}</FieldLabel>
+                <ToggleGroup
+                  value={genderVal}
+                  onChange={(v) => registerForm.setValue('gender', v as 'male' | 'female')}
+                  options={[
+                    { label: labels.male, value: 'male' },
+                    { label: labels.female, value: 'female' },
+                  ]}
+                />
+                {registerForm.formState.errors.gender && (
+                  <div style={{ fontSize: 11, color: '#ff6b8a', marginTop: 4 }}>{registerForm.formState.errors.gender.message}</div>
+                )}
+              </div>
+
+              {/* Мова */}
+              <div>
+                <FieldLabel>{labels.language}</FieldLabel>
+                <select
+                  {...registerForm.register('language')}
+                  style={{
+                    width: '100%', padding: '12px 16px',
+                    background: theme.colors.glass,
+                    border: `1.5px solid ${theme.colors.glassBorder}`,
+                    borderRadius: theme.radius.md,
+                    fontFamily: theme.fonts.sans, fontSize: 15,
+                    color: theme.colors.text, cursor: 'pointer',
+                  }}
+                >
+                  {LANGUAGES.map((l) => <option key={l} value={l} style={{ background: '#0d1f17' }}>{l}</option>)}
+                </select>
+              </div>
+
+              {/* Опис */}
+              <div>
+                <FieldLabel>{labels.bio}</FieldLabel>
+                <textarea
+                  rows={3}
+                  placeholder={{ ua: 'Розкажи про себе…', by: 'Раскажы пра сябе…', pl: 'Opowiedz o sobie…', en: 'Tell about yourself…' }[lang]}
+                  {...registerForm.register('bio')}
+                  style={{
+                    display: 'block', width: '100%', padding: '12px 16px',
+                    background: theme.colors.glass,
+                    border: `1.5px solid ${theme.colors.glassBorder}`,
+                    borderRadius: theme.radius.md,
+                    fontSize: 15, fontFamily: theme.fonts.sans,
+                    color: theme.colors.text, resize: 'none', lineHeight: 1.6,
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* ── КОГО ШУКАЮ ── */}
+              <div style={{ height: 1, background: theme.colors.glassBorder, margin: '6px 0' }} />
+              <SectionLabel>{labels.lookingFor}</SectionLabel>
+
+              {/* Стать кого шукаю */}
+              <div>
+                <FieldLabel>{labels.lookingGender}</FieldLabel>
+                <ToggleGroup
+                  value={lookingForGenderVal}
+                  onChange={(v) => registerForm.setValue('lookingForGender', v as 'male' | 'female' | 'any')}
+                  options={[
+                    { label: labels.male, value: 'male' },
+                    { label: labels.female, value: 'female' },
+                    { label: labels.any, value: 'any' },
+                  ]}
+                />
+              </div>
+
+              {/* Місто кого шукаю */}
+              <Input
+                label={labels.lookingCity}
+                placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]}
+                error={registerForm.formState.errors.lookingForCity?.message}
+                {...registerForm.register('lookingForCity')}
+              />
+
+              {/* Вік */}
+              <div>
+                <FieldLabel>{{ ua: 'Вік', by: 'Узрост', pl: 'Wiek', en: 'Age range' }[lang]}</FieldLabel>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="number" min={18} max={100} placeholder="18"
+                    {...registerForm.register('lookingForAgeMin')}
+                    style={{
+                      flex: 1, padding: '12px 16px',
+                      background: theme.colors.glass,
+                      border: `1.5px solid ${theme.colors.glassBorder}`,
+                      borderRadius: theme.radius.md,
+                      fontFamily: theme.fonts.sans, fontSize: 15,
+                      color: theme.colors.text,
+                    }}
+                  />
+                  <span style={{ color: theme.colors.textMuted, fontFamily: theme.fonts.sans, fontSize: 13 }}>—</span>
+                  <input
+                    type="number" min={18} max={100} placeholder="99"
+                    {...registerForm.register('lookingForAgeMax')}
+                    style={{
+                      flex: 1, padding: '12px 16px',
+                      background: theme.colors.glass,
+                      border: `1.5px solid ${theme.colors.glassBorder}`,
+                      borderRadius: theme.radius.md,
+                      fontFamily: theme.fonts.sans, fontSize: 15,
+                      color: theme.colors.text,
+                    }}
+                  />
+                </div>
+              </div>
+
               {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b8a', textAlign: 'center' }}>{error}</div>}
+
               <Button type="submit" fullWidth loading={registerMutation.isPending} style={{ marginTop: 8 }}>
                 {{ ua: 'Зареєструватись', by: 'Зарэгіструвацца', pl: 'Zarejestruj się', en: 'Sign up' }[lang]}
               </Button>

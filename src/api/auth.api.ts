@@ -4,6 +4,9 @@ import { AuthResponse } from '@/types';
 export const authApi = {
   register: (data: {
     name: string; email: string; password: string; birth: string; city: string;
+    gender: string; language: string; bio?: string;
+    lookingForGender: string; lookingForCity?: string;
+    lookingForAgeMin?: number; lookingForAgeMax?: number;
   }) => api.post<AuthResponse>('/auth/register', data).then((r) => r.data),
 
   login: (email: string, password: string) =>

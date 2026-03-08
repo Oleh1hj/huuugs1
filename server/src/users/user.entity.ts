@@ -31,6 +31,24 @@ export class User {
   @Column({ type: 'text', nullable: true })
   bio: string;
 
+  @Column({ length: 10, default: 'male' })
+  gender: string; // 'male' | 'female'
+
+  @Column({ length: 100, default: 'Українська' })
+  language: string;
+
+  @Column({ length: 10, default: 'any' })
+  lookingForGender: string; // 'male' | 'female' | 'any'
+
+  @Column({ length: 100, nullable: true })
+  lookingForCity: string;
+
+  @Column({ type: 'int', nullable: true })
+  lookingForAgeMin: number;
+
+  @Column({ type: 'int', nullable: true })
+  lookingForAgeMax: number;
+
   @Column({ default: true })
   isActive: boolean;
 

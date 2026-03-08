@@ -5,6 +5,13 @@ import * as bcrypt from 'bcrypt';
 import { User } from './user.entity';
 import { RegisterDto } from '../auth/dto/register.dto';
 
+export interface ProfileFilters {
+  gender?: string;
+  city?: string;
+  ageMin?: number;
+  ageMax?: number;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -31,18 +38,40 @@ export class UsersService {
     return this.repo.findOne({ where: { id } });
   }
 
-  async findAll(exceptId: string): Promise<User[]> {
-    return this.repo.find({
-      where: { id: Not(exceptId), isActive: true },
-      select: ['id', 'name', 'birth', 'city', 'photo', 'bio'],
-      order: { createdAt: 'DESC' },
-      take: 100,
-    });
+  async findAll(exceptId: string, filters?: ProfileFilters): Promise<User[]> {
+    const qb = this.repo.createQueryBuilder('u')
+      .select(['u.id', 'u.name', 'u.birth', 'u.city', 'u.photo', 'u.bio', 'u.gender', 'u.language', 'u.lookingForGender', 'u.lookingForCity', 'u.lookingForAgeMin', 'u.lookingForAgeMax'])
+      .where('u.id != :id', { id: exceptId })
+      .andWhere('u.isActive = true')
+      .orderBy('u.createdAt', 'DESC')
+      .take(100);
+
+    if (filters?.gender && filters.gender !== 'any') {
+      qb.andWhere('u.gender = :gender', { gender: filters.gender });
+    }
+
+    if (filters?.city) {
+      qb.andWhere('LOWER(u.city) LIKE :city', { city: `%${filters.city.toLowerCase()}%` });
+    }
+
+    if (filters?.ageMin) {
+      const maxBirth = new Date();
+      maxBirth.setFullYear(maxBirth.getFullYear() - filters.ageMin);
+      qb.andWhere('u.birth <= :maxBirth', { maxBirth: maxBirth.toISOString().split('T')[0] });
+    }
+
+    if (filters?.ageMax) {
+      const minBirth = new Date();
+      minBirth.setFullYear(minBirth.getFullYear() - filters.ageMax);
+      qb.andWhere('u.birth >= :minBirth', { minBirth: minBirth.toISOString().split('T')[0] });
+    }
+
+    return qb.getMany();
   }
 
   async updateProfile(
     userId: string,
-    data: Partial<Pick<User, 'name' | 'birth' | 'city' | 'bio' | 'photo'>>,
+    data: Partial<Pick<User, 'name' | 'birth' | 'city' | 'bio' | 'photo' | 'gender' | 'language' | 'lookingForGender' | 'lookingForCity' | 'lookingForAgeMin' | 'lookingForAgeMax'>>,
   ): Promise<User> {
     const user = await this.findById(userId);
     if (!user) throw new NotFoundException('User not found');

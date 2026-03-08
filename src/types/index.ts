@@ -8,6 +8,12 @@ export interface User {
   city: string;
   photo: string | null;
   bio: string | null;
+  gender: string;      // 'male' | 'female'
+  language: string;
+  lookingForGender: string; // 'male' | 'female' | 'any'
+  lookingForCity: string | null;
+  lookingForAgeMin: number | null;
+  lookingForAgeMax: number | null;
   createdAt: string;
 }
 
