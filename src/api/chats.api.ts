@@ -7,4 +7,7 @@ export const chatsApi = {
 
   getMessages: (conversationId: string, params?: { limit?: number; before?: string }) =>
     api.get<Message[]>(`/chats/${conversationId}/messages`, { params }).then((r) => r.data),
+
+  markAsRead: (conversationId: string) =>
+    api.patch(`/chats/${conversationId}/read`),
 };

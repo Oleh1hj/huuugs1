@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
@@ -25,5 +25,13 @@ export class ChatsController {
       limit ?? 50,
       before ? new Date(before) : undefined,
     );
+  }
+
+  @Patch(':conversationId/read')
+  markAsRead(
+    @CurrentUser() me: User,
+    @Param('conversationId') conversationId: string,
+  ) {
+    return this.chatsService.markAsRead(conversationId, me.id);
   }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatsApi } from '@/api/chats.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useSendMessage, useTyping } from '@/hooks/useSocket';
@@ -20,6 +20,7 @@ export function ChatRoom() {
   const endRef = useRef<HTMLDivElement>(null);
 
   const t = useUiTranslations();
+  const queryClient = useQueryClient();
   const sendMessage = useSendMessage(conversationId!);
   const emitTyping = useTyping(conversationId!);
 
@@ -38,11 +39,14 @@ export function ChatRoom() {
     refetchInterval: false, // rely on WebSocket
   });
 
-  // Join socket room for this conversation
+  // Join socket room + mark messages as read on open
   useEffect(() => {
     const socket = getSocket();
     socket.emit('join', conversationId);
-  }, [conversationId]);
+    chatsApi.markAsRead(conversationId!).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    });
+  }, [conversationId, queryClient]);
 
   // Show typing indicator from socket events
   useEffect(() => {
