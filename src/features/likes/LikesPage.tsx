@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -18,6 +19,8 @@ export function LikesPage() {
   const showMatch = useUiStore((s) => s.showMatch);
   const queryClient = useQueryClient();
 
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
   const { data: whoLiked = [], isLoading } = useQuery({
     queryKey: ['likes', 'received'],
     queryFn: likesApi.getReceived,
@@ -27,6 +30,7 @@ export function LikesPage() {
   const replyMutation = useMutation({
     mutationFn: (userId: string) => api.toggle(userId),
     onSuccess: (result, userId) => {
+      setPendingId(null);
       if (result.match && result.conversationId) {
         const person = whoLiked.find((p) => p.id === userId);
         if (person) {
@@ -37,6 +41,7 @@ export function LikesPage() {
         navigate(`/chats/${result.conversationId}`);
       }
     },
+    onError: () => setPendingId(null),
   });
 
   return (
@@ -76,8 +81,8 @@ export function LikesPage() {
             <Button
               size="sm"
               style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-              onClick={() => replyMutation.mutate(person.id)}
-              loading={replyMutation.isPending}
+              onClick={() => { setPendingId(person.id); replyMutation.mutate(person.id); }}
+              loading={pendingId === person.id}
             >
               {t.replyBtn}
             </Button>

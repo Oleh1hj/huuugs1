@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { chatsApi } from '@/api/chats.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useSendMessage, useTyping } from '@/hooks/useSocket';
+import { getSocket } from '@/lib/socket';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
 import { Message, Conversation } from '@/types';
@@ -39,7 +40,6 @@ export function ChatRoom() {
 
   // Show typing indicator from socket events
   useEffect(() => {
-    const { getSocket } = require('@/lib/socket');
     const socket = getSocket();
     const handler = ({ userId }: { userId: string }) => {
       if (userId !== me?.id) {
