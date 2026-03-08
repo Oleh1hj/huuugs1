@@ -9,12 +9,18 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
 
+  // Increase body size limit for photo uploads (base64)
+  app.use(require('express').json({ limit: '5mb' }));
+  app.use(require('express').urlencoded({ extended: true, limit: '5mb' }));
+
   // Security
   app.use(helmet({ crossOriginEmbedderPolicy: false }));
 
-  // CORS — in prod restrict to your domain
+  // CORS — allow same-origin + any configured client URL
   app.enableCors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+    origin: process.env.CLIENT_URL
+      ? [process.env.CLIENT_URL, /\.railway\.app$/]
+      : true,
     credentials: true,
   });
 
