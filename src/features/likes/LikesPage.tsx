@@ -87,8 +87,8 @@ export function LikesPage() {
         {!isLoading && whoLiked.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 20px', fontFamily: theme.fonts.sans, color: theme.colors.textFaint }}>
             <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.4 }}>❤️</div>
-            <div style={{ fontSize: 15 }}>Поки що нікого</div>
-            <div style={{ fontSize: 13, marginTop: 6 }}>Як хтось тебе лайкне — з'явиться тут</div>
+            <div style={{ fontSize: 15 }}>{t.noneYet}</div>
+            <div style={{ fontSize: 13, marginTop: 6 }}>{t.noneYetHint}</div>
           </div>
         )}
       </div>

@@ -1,16 +1,19 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
 import { useUiStore } from '@/store/ui.store';
 import { NavBar } from './NavBar';
 import { Particles } from '@/components/Particles';
 import { MatchModal } from '@/components/MatchModal';
 import { Avatar } from '@/components/ui/Avatar';
+import { useUiTranslations } from '@/i18n';
 import { theme, g } from '@/styles/theme';
 
 export function Layout() {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { lang, setLang } = useUiStore();
   const matchNotif = useUiStore((s) => s.matchNotif);
+  const t = useUiTranslations();
+  const navigate = useNavigate();
 
   return (
     <div style={{
@@ -42,7 +45,7 @@ export function Layout() {
                 animation: 'shimmer 4s linear infinite',
               }}>Huugs</h1>
               <p style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, letterSpacing: 2.5, textTransform: 'uppercase', marginTop: 3 }}>
-                два атоми — одна орбіта
+                {t.tagline}
               </p>
             </div>
 
@@ -61,9 +64,9 @@ export function Layout() {
                 ))}
               </div>
 
-              {/* Avatar + logout */}
+              {/* Avatar → profile */}
               {user && (
-                <div style={{ position: 'relative', cursor: 'pointer' }} onClick={logout} title="Вийти">
+                <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/profile')} title={t.profile}>
                   <Avatar photo={user.photo} name={user.name} size={38} border={`2px solid ${theme.colors.green.mid}`} />
                 </div>
               )}

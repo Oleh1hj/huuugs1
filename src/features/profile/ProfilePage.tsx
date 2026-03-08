@@ -6,6 +6,7 @@ import { profilesApi } from '@/api/profiles.api';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
+import { useUiTranslations } from '@/i18n';
 import { calcAge } from '@/utils';
 import { theme, g } from '@/styles/theme';
 
@@ -56,15 +57,10 @@ function ToggleGroup({ options, value, onChange }: {
   );
 }
 
-const GENDER_LABEL: Record<string, string> = {
-  male: 'Хлопець', female: 'Дівчина',
-};
-const LOOKING_LABEL: Record<string, string> = {
-  male: 'Хлопця', female: 'Дівчину', any: 'Всіх',
-};
 
 export function ProfilePage() {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, logout } = useAuthStore();
+  const t = useUiTranslations();
   const [editMode, setEditMode] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,21 +87,27 @@ export function ProfilePage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 600;
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const result = canvas.toDataURL('image/jpeg', 0.75);
-      URL.revokeObjectURL(url);
-      setPhotoPreview(result);
-      setValue('photo', result);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 600;
+        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const result = canvas.toDataURL('image/jpeg', 0.75);
+        setPhotoPreview(result);
+        setValue('photo', result);
+      };
+      img.src = dataUrl;
     };
-    img.src = url;
+    reader.readAsDataURL(file);
   };
 
   const updateMutation = useMutation({
@@ -147,16 +149,16 @@ export function ProfilePage() {
             <>
               <p style={{ fontFamily: theme.fonts.serif, fontSize: 17, fontStyle: 'italic', color: 'rgba(232,244,232,0.7)', lineHeight: 1.7, marginBottom: 16 }}>{user.bio || '—'}</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                {user.gender && <Chip icon={user.gender === 'male' ? '♂' : '♀'} label={GENDER_LABEL[user.gender] ?? user.gender} />}
+                {user.gender && <Chip icon={user.gender === 'male' ? '♂' : '♀'} label={user.gender === 'male' ? t.genderMale : t.genderFemale} />}
                 <Chip icon="🌿" label={user.city} />
                 <Chip icon="🎂" label={new Date(user.birth).toLocaleDateString('uk-UA')} />
                 {user.language && <Chip icon="💬" label={user.language} />}
               </div>
               {(user.lookingForGender || user.lookingForCity || user.lookingForAgeMin) && (
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>ШУКАЮ</div>
+                  <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>{t.lookingSection}</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {user.lookingForGender && <Chip icon="❤" label={LOOKING_LABEL[user.lookingForGender] ?? user.lookingForGender} />}
+                    {user.lookingForGender && <Chip icon="❤" label={user.lookingForGender === 'male' ? t.lookingMale : user.lookingForGender === 'female' ? t.lookingFemale : t.lookingAny} />}
                     {user.lookingForCity && <Chip icon="📍" label={user.lookingForCity} />}
                     {user.lookingForAgeMin && user.lookingForAgeMax && (
                       <Chip icon="🎯" label={`${user.lookingForAgeMin}–${user.lookingForAgeMax} р.`} />
@@ -164,7 +166,8 @@ export function ProfilePage() {
                   </div>
                 </div>
               )}
-              <Button fullWidth onClick={() => setEditMode(true)}>✏️ Редагувати</Button>
+              <Button fullWidth onClick={() => setEditMode(true)}>{t.editBtn}</Button>
+              <Button fullWidth variant="ghost" onClick={logout} style={{ marginTop: 10 }}>{t.logout}</Button>
             </>
           ) : (
             <form onSubmit={handleSubmit((d) => updateMutation.mutate(d as any))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -192,51 +195,51 @@ export function ProfilePage() {
                 <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
               </div>
 
-              <Input label="Ім'я" error={errors.name?.message} {...register('name', { required: true })} />
-              <Input label="Дата народження" type="date" error={errors.birth?.message} {...register('birth', { required: true })} />
-              <Input label="Місто" error={errors.city?.message} {...register('city', { required: true })} />
+              <Input label={t.fieldName} error={errors.name?.message} {...register('name', { required: true })} />
+              <Input label={t.fieldBirth} type="date" error={errors.birth?.message} {...register('birth', { required: true })} />
+              <Input label={t.fieldCity} error={errors.city?.message} {...register('city', { required: true })} />
 
               <div>
-                <FieldLabel>Стать</FieldLabel>
+                <FieldLabel>{t.genderLabel}</FieldLabel>
                 <ToggleGroup
                   value={genderVal}
                   onChange={(v) => setValue('gender', v)}
-                  options={[{ label: 'Хлопець', value: 'male' }, { label: 'Дівчина', value: 'female' }]}
+                  options={[{ label: t.genderMale, value: 'male' }, { label: t.genderFemale, value: 'female' }]}
                 />
               </div>
 
               <div>
-                <FieldLabel>Мова спілкування</FieldLabel>
+                <FieldLabel>{t.langLabel}</FieldLabel>
                 <select {...register('language')} style={{ width: '100%', padding: '12px 16px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.md, fontFamily: theme.fonts.sans, fontSize: 15, color: theme.colors.text }}>
                   {LANGUAGES.map((l) => <option key={l} value={l} style={{ background: '#0d1f17' }}>{l}</option>)}
                 </select>
               </div>
 
               <div>
-                <FieldLabel>Про себе</FieldLabel>
+                <FieldLabel>{t.bioLabel}</FieldLabel>
                 <textarea rows={3} {...register('bio')} style={{ display: 'block', width: '100%', padding: '12px 16px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.md, fontSize: 15, fontFamily: theme.fonts.sans, color: theme.colors.text, resize: 'none', lineHeight: 1.6, boxSizing: 'border-box' }} />
               </div>
 
               <div style={{ height: 1, background: theme.colors.glassBorder }} />
-              <FieldLabel>ШУКАЮ</FieldLabel>
+              <FieldLabel>{t.lookingSection}</FieldLabel>
 
               <div>
-                <FieldLabel>Стать</FieldLabel>
+                <FieldLabel>{t.genderLabel}</FieldLabel>
                 <ToggleGroup
                   value={lookingForGenderVal}
                   onChange={(v) => setValue('lookingForGender', v)}
                   options={[
-                    { label: 'Хлопця', value: 'male' },
-                    { label: 'Дівчину', value: 'female' },
-                    { label: 'Всіх', value: 'any' },
+                    { label: t.lookingMale, value: 'male' },
+                    { label: t.lookingFemale, value: 'female' },
+                    { label: t.lookingAny, value: 'any' },
                   ]}
                 />
               </div>
 
-              <Input label="Місто (необов'язково)" {...register('lookingForCity')} />
+              <Input label={t.lookingCityOptional} {...register('lookingForCity')} />
 
               <div>
-                <FieldLabel>Вік</FieldLabel>
+                <FieldLabel>{t.ageRange}</FieldLabel>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input type="number" min={18} max={100} placeholder="18" {...register('lookingForAgeMin')} style={{ flex: 1, padding: '12px 16px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.md, fontFamily: theme.fonts.sans, fontSize: 15, color: theme.colors.text }} />
                   <span style={{ color: theme.colors.textMuted, fontSize: 13 }}>—</span>
@@ -245,8 +248,8 @@ export function ProfilePage() {
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <Button type="submit" fullWidth loading={updateMutation.isPending}>Зберегти</Button>
-                <Button type="button" variant="ghost" fullWidth onClick={() => { reset(); setPhotoPreview(''); setEditMode(false); }}>Скасувати</Button>
+                <Button type="submit" fullWidth loading={updateMutation.isPending}>{t.saveBtn}</Button>
+                <Button type="button" variant="ghost" fullWidth onClick={() => { reset(); setPhotoPreview(''); setEditMode(false); }}>{t.cancelBtn}</Button>
               </div>
             </form>
           )}
