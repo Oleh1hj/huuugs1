@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Query, UseGuards, Version } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from './user.entity';
@@ -28,7 +28,6 @@ class ProfilesQueryDto {
 }
 
 @Controller('users')
-@Version('1')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

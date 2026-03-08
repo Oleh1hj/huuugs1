@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Param, Body, UseGuards,
-  ForbiddenException, Version,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,7 +16,6 @@ class SendMessageDto {
 }
 
 @Controller('support')
-@Version('1')
 @UseGuards(JwtAuthGuard)
 export class SupportController {
   constructor(private readonly supportService: SupportService) {}

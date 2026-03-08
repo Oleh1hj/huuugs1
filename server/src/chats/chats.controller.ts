@@ -1,11 +1,10 @@
-import { Controller, Get, Param, Query, UseGuards, Version } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
 import { ChatsService } from './chats.service';
 
 @Controller('chats')
-@Version('1')
 @UseGuards(JwtAuthGuard)
 export class ChatsController {
   constructor(private readonly chatsService: ChatsService) {}
