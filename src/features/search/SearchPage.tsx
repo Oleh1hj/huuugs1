@@ -21,9 +21,12 @@ export function SearchPage() {
     queryFn: likesApi.getGiven,
   });
 
-  // For demo: simulate some profiles that have liked me back (odd index positions)
-  // In production this would come from a /profiles?withLikeStatus=true endpoint
-  const likedMeBackIds = new Set(profiles.filter((_, i) => i % 3 === 0).map((p) => p.id));
+  const { data: receivedLikes = [] } = useQuery({
+    queryKey: ['likes', 'received'],
+    queryFn: likesApi.getReceived,
+  });
+
+  const likedMeBackIds = new Set(receivedLikes.map((u) => u.id));
 
   const filtered = city.trim()
     ? profiles.filter((p) => p.city.toLowerCase().includes(city.trim().toLowerCase()))
