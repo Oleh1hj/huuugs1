@@ -2,7 +2,9 @@ import { api } from '@/lib/api';
 import { User } from '@/types';
 
 export const profilesApi = {
-  getAll: (params?: { gender?: string; city?: string; ageMin?: number; ageMax?: number }) =>
+  getAll: () => api.get<User[]>('/users/profiles').then((r) => r.data),
+
+  getAllFiltered: (params: { gender?: string; city?: string; ageMin?: number; ageMax?: number }) =>
     api.get<User[]>('/users/profiles', { params }).then((r) => r.data),
 
   updateMe: (data: Partial<Pick<User,

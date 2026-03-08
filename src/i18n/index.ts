@@ -191,5 +191,5 @@ export type Translations = typeof translations.ua;
 
 export function useUiTranslations(): Translations {
   const lang = useUiStore((s) => s.lang);
-  return translations[lang];
+  return translations[lang] as unknown as Translations;
 }
