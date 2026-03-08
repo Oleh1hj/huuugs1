@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Or, Equal } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import { Conversation } from './conversation.entity';
 import { Message } from './message.entity';
 
@@ -81,8 +81,9 @@ export class ChatsService {
   }
 
   async markAsRead(conversationId: string, userId: string): Promise<void> {
+    // Only mark messages from the partner (not current user's own messages)
     await this.msgRepo.update(
-      { conversationId, isRead: false },
+      { conversationId, isRead: false, senderId: Not(userId) },
       { isRead: true },
     );
   }
