@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { chatsApi } from '@/api/chats.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useSendMessage, useTyping } from '@/hooks/useSocket';
 import { Avatar } from '@/components/ui/Avatar';
+import { useUiTranslations } from '@/i18n';
 import { Message, Conversation } from '@/types';
 import { timeStr } from '@/utils';
 import { theme, g } from '@/styles/theme';
@@ -16,13 +17,16 @@ export function ChatRoom() {
   const [input, setInput] = useState('');
   const [typingVisible, setTypingVisible] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
-  const queryClient = useQueryClient();
 
+  const t = useUiTranslations();
   const sendMessage = useSendMessage(conversationId!);
   const emitTyping = useTyping(conversationId!);
 
-  // Get conversation info from cache
-  const conversations = queryClient.getQueryData<Conversation[]>(['conversations']) ?? [];
+  // Get conversation info — use query so it refetches after a new match
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: chatsApi.getConversations,
+  });
   const conv = conversations.find((c) => c.id === conversationId);
   const partner = conv ? (conv.userAId === me?.id ? conv.userB : conv.userA) : null;
 
@@ -81,7 +85,7 @@ export function ChatRoom() {
         <div>
           <div style={{ fontFamily: theme.fonts.serif, fontSize: 20, fontWeight: 500, color: theme.colors.text }}>{partner?.name}</div>
           <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, color: theme.colors.textFaint }}>
-            {typingVisible ? '✍️ друкує…' : '💚 Взаємний лайк'}
+            {typingVisible ? t.typing : t.mutualLikeHeader}
           </div>
         </div>
       </div>
@@ -90,7 +94,7 @@ export function ChatRoom() {
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14, paddingRight: 2 }}>
         {messages.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0', fontFamily: theme.fonts.sans, fontSize: 13, color: theme.colors.textFaint }}>
-            💚 Напишіть першими!
+            {t.writeFirst}
           </div>
         )}
 
@@ -132,7 +136,7 @@ export function ChatRoom() {
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder="Напиши повідомлення…"
+          placeholder={t.msgPlaceholder}
           style={{
             flex: 1, padding: '12px 16px',
             background: theme.colors.glass,

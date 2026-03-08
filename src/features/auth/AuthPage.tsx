@@ -133,21 +133,27 @@ export function AuthPage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const MAX = 600;
-      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const result = canvas.toDataURL('image/jpeg', 0.75);
-      URL.revokeObjectURL(url);
-      setPhotoPreview(result);
-      registerForm.setValue('photo', result);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 600;
+        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const result = canvas.toDataURL('image/jpeg', 0.75);
+        setPhotoPreview(result);
+        registerForm.setValue('photo', result);
+      };
+      img.src = dataUrl;
     };
-    img.src = url;
+    reader.readAsDataURL(file);
   };
 
   const genderVal = registerForm.watch('gender');

@@ -3,17 +3,18 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { chatsApi } from '@/api/chats.api';
 import { supportApi } from '@/api/support.api';
+import { useUiTranslations } from '@/i18n';
 import { theme } from '@/styles/theme';
 
-const tabs = [
-  { to: '/search',  icon: '✦', label: 'Пошук'     },
-  { to: '/likes',   icon: '❤', label: 'Лайки'     },
-  { to: '/chats',   icon: '💬', label: 'Чати'      },
-  { to: '/support', icon: '🛟', label: 'Підтримка' },
-  { to: '/profile', icon: '◎', label: 'Профіль'   },
-];
-
 export function NavBar() {
+  const t = useUiTranslations();
+  const tabs = [
+    { to: '/search',  icon: '✦', label: t.search   },
+    { to: '/likes',   icon: '❤', label: t.liked    },
+    { to: '/chats',   icon: '💬', label: t.chats   },
+    { to: '/support', icon: '🛟', label: t.support  },
+    { to: '/profile', icon: '◎', label: t.profile  },
+  ];
   const { user } = useAuthStore();
 
   const { data: conversations } = useQuery({

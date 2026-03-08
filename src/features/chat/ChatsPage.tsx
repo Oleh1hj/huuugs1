@@ -22,7 +22,7 @@ export function ChatsPage() {
   if (isLoading) return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
       <div style={{ fontSize: 40, opacity: 0.4 }}>💬</div>
-      <div style={{ fontFamily: theme.fonts.sans, color: theme.colors.textFaint, fontSize: 14 }}>Завантажуємо…</div>
+      <div style={{ fontFamily: theme.fonts.sans, color: theme.colors.textFaint, fontSize: 14 }}>{t.loading}</div>
     </div>
   );
 
@@ -62,7 +62,7 @@ export function ChatsPage() {
               <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: theme.colors.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {lastMsg
                   ? (lastMsg.senderId === me?.id ? 'Ти: ' : '') + lastMsg.text
-                  : '💚 Взаємний лайк — напишіть першими!'}
+                  : t.mutualLikeFirst}
               </div>
             </div>
 

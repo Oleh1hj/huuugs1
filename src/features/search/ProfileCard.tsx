@@ -25,10 +25,24 @@ export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
 
   const likeMutation = useMutation({
     mutationFn: () => likesApi.toggle(profile.id),
-    onSuccess: (result: LikeResult) => {
-      // Update liked IDs cache
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['likes', 'given'] });
+      const previous = queryClient.getQueryData<string[]>(['likes', 'given']);
+      // Optimistically toggle
       queryClient.setQueryData<string[]>(['likes', 'given'], (old = []) =>
-        result.liked ? [...old, profile.id] : old.filter((id) => id !== profile.id),
+        isLiked ? old.filter((id) => id !== profile.id) : [...old, profile.id],
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['likes', 'given'], context.previous);
+      }
+    },
+    onSuccess: (result: LikeResult) => {
+      // Reconcile with server response
+      queryClient.setQueryData<string[]>(['likes', 'given'], (old = []) =>
+        result.liked ? [...old.filter((id) => id !== profile.id), profile.id] : old.filter((id) => id !== profile.id),
       );
 
       // Mutual like → show match popup
