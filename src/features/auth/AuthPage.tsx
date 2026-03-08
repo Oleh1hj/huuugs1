@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +26,7 @@ const registerSchema = loginSchema.extend({
   gender: z.enum(['male', 'female'], { required_error: 'Вкажи стать' }),
   language: z.string().min(1, 'Вкажи мову'),
   bio: z.string().max(500).optional(),
+  photo: z.string().optional(),
   lookingForGender: z.enum(['male', 'female', 'any']),
   lookingForCity: z.string().max(100).optional(),
   lookingForAgeMin: z.coerce.number().int().min(18).max(100).optional().or(z.literal('')),
@@ -116,6 +117,21 @@ export function AuthPage() {
 
   const isLogin = mode === 'login';
   const error = loginMutation.error?.message ?? registerMutation.error?.message;
+
+  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setPhotoPreview(result);
+      registerForm.setValue('photo', result);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const genderVal = registerForm.watch('gender');
   const lookingForGenderVal = registerForm.watch('lookingForGender');
@@ -233,6 +249,35 @@ export function AuthPage() {
 
               {/* ── ПРО СЕБЕ ── */}
               <SectionLabel>{labels.aboutMe}</SectionLabel>
+
+              {/* Photo upload */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: 90, height: 90, borderRadius: '50%', cursor: 'pointer',
+                    border: `2px dashed ${photoPreview ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`,
+                    background: photoPreview ? 'transparent' : 'rgba(255,255,255,0.04)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden', position: 'relative', transition: 'border-color 0.2s',
+                  }}
+                >
+                  {photoPreview
+                    ? <img src={photoPreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 22, marginBottom: 2 }}>📷</div>
+                        <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint }}>Фото</div>
+                      </div>
+                  }
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handlePhotoChange}
+                />
+              </div>
 
               <Input
                 label={{ ua: "Ім'я", by: 'Імя', pl: 'Imię', en: 'Name' }[lang]}

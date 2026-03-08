@@ -7,6 +7,8 @@ import { LikesPage } from '@/features/likes/LikesPage';
 import { ChatsPage } from '@/features/chat/ChatsPage';
 import { ChatRoom } from '@/features/chat/ChatRoom';
 import { ProfilePage } from '@/features/profile/ProfilePage';
+import { SupportPage } from '@/features/support/SupportPage';
+import { AdminSupportPage } from '@/features/support/AdminSupportPage';
 
 function RequireAuth() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -18,6 +20,11 @@ function RedirectIfAuthed() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   if (isAuthenticated) return <Navigate to="/search" replace />;
   return <AuthPage />;
+}
+
+function SupportRoute() {
+  const user = useAuthStore((s) => s.user);
+  return user?.isAdmin ? <AdminSupportPage /> : <SupportPage />;
 }
 
 export const router = createBrowserRouter([
@@ -36,6 +43,7 @@ export const router = createBrowserRouter([
           { path: 'likes',   element: <LikesPage /> },
           { path: 'chats',   element: <ChatsPage /> },
           { path: 'chats/:conversationId', element: <ChatRoom /> },
+          { path: 'support', element: <SupportRoute /> },
           { path: 'profile', element: <ProfilePage /> },
         ],
       },

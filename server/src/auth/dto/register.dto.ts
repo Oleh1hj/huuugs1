@@ -35,8 +35,11 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(500)
-  bio?: string;
+  bio?: string; // base64 or URL
+
+  @IsOptional()
+  @IsString()
+  photo?: string; // base64 dataURL
 
   @IsIn(['male', 'female', 'any'])
   lookingForGender: string;

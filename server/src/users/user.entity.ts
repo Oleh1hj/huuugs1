@@ -25,7 +25,7 @@ export class User {
   @Column({ length: 100 })
   city: string;
 
-  @Column({ nullable: true, length: 255 })
+  @Column({ nullable: true, type: 'text' })
   photo: string;
 
   @Column({ type: 'text', nullable: true })
@@ -48,6 +48,9 @@ export class User {
 
   @Column({ type: 'int', nullable: true })
   lookingForAgeMax: number;
+
+  @Column({ default: false })
+  isAdmin: boolean;
 
   @Column({ default: true })
   isActive: boolean;

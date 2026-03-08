@@ -23,7 +23,9 @@ export class UsersService {
     if (exists) throw new ConflictException('Email already registered');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const user = this.repo.create({ ...dto, passwordHash });
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const isAdmin = !!(adminEmail && dto.email.toLowerCase() === adminEmail.toLowerCase());
+    const user = this.repo.create({ ...dto, passwordHash, isAdmin });
     return this.repo.save(user);
   }
 

@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { LikesModule } from './likes/likes.module';
 import { ChatsModule } from './chats/chats.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ChatsModule } from './chats/chats.module';
     UsersModule,
     LikesModule,
     ChatsModule,
+    SupportModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

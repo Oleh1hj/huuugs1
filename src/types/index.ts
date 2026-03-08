@@ -14,6 +14,7 @@ export interface User {
   lookingForCity: string | null;
   lookingForAgeMin: number | null;
   lookingForAgeMax: number | null;
+  isAdmin: boolean;
   createdAt: string;
 }
 
@@ -35,6 +36,23 @@ export interface Message {
   isRead: boolean;
   createdAt: string;
   sender?: User;
+}
+
+export interface SupportMessage {
+  id: string;
+  userId: string;
+  text: string;
+  fromAdmin: boolean;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SupportConversation {
+  userId: string;
+  userName: string;
+  lastMessage: string;
+  lastAt: string;
+  unread: number;
 }
 
 // ─── API response types ───────────────────────────────────────────
