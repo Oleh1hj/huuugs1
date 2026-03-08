@@ -113,10 +113,19 @@ export function AuthPage() {
       lookingForAgeMax: data.lookingForAgeMax ? Number(data.lookingForAgeMax) : undefined,
     }),
     onSuccess: (data) => { setAuth(data.user, data.accessToken, data.refreshToken); navigate('/search'); },
+    onError: () => { /* error rendered below */ },
   });
 
   const isLogin = mode === 'login';
-  const error = loginMutation.error?.message ?? registerMutation.error?.message;
+  const getErrMsg = (e: unknown) => {
+    if (!e) return undefined;
+    const ae = e as any;
+    const srv = ae?.response?.data;
+    if (typeof srv?.message === 'string') return srv.message;
+    if (Array.isArray(srv?.message)) return srv.message.join(', ');
+    return ae?.message ?? 'Помилка сервера';
+  };
+  const error = getErrMsg(loginMutation.error) ?? getErrMsg(registerMutation.error);
 
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -124,13 +133,21 @@ export function AuthPage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 600;
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const result = canvas.toDataURL('image/jpeg', 0.75);
+      URL.revokeObjectURL(url);
       setPhotoPreview(result);
       registerForm.setValue('photo', result);
     };
-    reader.readAsDataURL(file);
+    img.src = url;
   };
 
   const genderVal = registerForm.watch('gender');
@@ -239,7 +256,7 @@ export function AuthPage() {
             <form onSubmit={loginForm.handleSubmit((d) => loginMutation.mutate(d))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <Input label="Email" type="email" placeholder="you@example.com" error={loginForm.formState.errors.email?.message} {...loginForm.register('email')} />
               <Input label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]} type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
-              {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b8a', textAlign: 'center' }}>{error}</div>}
+              {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: '#ff6b8a', textAlign: 'center', background: 'rgba(255,107,138,0.1)', border: '1px solid rgba(255,107,138,0.3)', borderRadius: 10, padding: '10px 14px' }}>{error}</div>}
               <Button type="submit" fullWidth loading={loginMutation.isPending} style={{ marginTop: 8 }}>
                 {{ ua: 'Увійти', by: 'Увайсці', pl: 'Zaloguj się', en: 'Log in' }[lang]}
               </Button>
@@ -420,7 +437,7 @@ export function AuthPage() {
                 </div>
               </div>
 
-              {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b8a', textAlign: 'center' }}>{error}</div>}
+              {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: '#ff6b8a', textAlign: 'center', background: 'rgba(255,107,138,0.1)', border: '1px solid rgba(255,107,138,0.3)', borderRadius: 10, padding: '10px 14px' }}>{error}</div>}
 
               <Button type="submit" fullWidth loading={registerMutation.isPending} style={{ marginTop: 8 }}>
                 {{ ua: 'Зареєструватись', by: 'Зарэгіструвацца', pl: 'Zarejestruj się', en: 'Sign up' }[lang]}
