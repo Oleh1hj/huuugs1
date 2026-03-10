@@ -10,6 +10,7 @@ import { UsersModule } from './users/users.module';
 import { LikesModule } from './likes/likes.module';
 import { ChatsModule } from './chats/chats.module';
 import { SupportModule } from './support/support.module';
+import { SpinBottleModule } from './spin-bottle/spin-bottle.module';
 
 const distPath = join(__dirname, '..', '..', 'dist');
 
@@ -48,6 +49,7 @@ const distPath = join(__dirname, '..', '..', 'dist');
     LikesModule,
     ChatsModule,
     SupportModule,
+    SpinBottleModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

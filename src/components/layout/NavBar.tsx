@@ -14,11 +14,12 @@ export function NavBar() {
   const t = useUiTranslations();
   const location = useLocation();
   const tabs = [
-    { to: '/search',  icon: '✦', label: t.search   },
-    { to: '/likes',   icon: '❤', label: t.liked    },
+    { to: '/search',  icon: '✦',  label: t.search  },
+    { to: '/likes',   icon: '❤',  label: t.liked   },
+    { to: '/bottle',  icon: '🍾', label: 'Гра'     },
     { to: '/chats',   icon: '💬', label: t.chats   },
     { to: '/support', icon: '🛟', label: t.support  },
-    { to: '/profile', icon: '◎', label: t.profile  },
+    { to: '/profile', icon: '◎',  label: t.profile  },
   ];
   const { user } = useAuthStore();
 
@@ -65,7 +66,7 @@ export function NavBar() {
 
   return (
     <nav style={{
-      display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4,
+      display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 3,
       background: 'rgba(255,255,255,0.04)',
       borderRadius: theme.radius.lg, padding: 5,
       border: `1px solid ${theme.colors.glassBorder}`,
