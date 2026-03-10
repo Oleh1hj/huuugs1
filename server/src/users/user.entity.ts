@@ -28,7 +28,10 @@ export class User {
   @Column({ nullable: true, type: 'text' })
   photo: string;
 
-  @Column({ type: 'jsonb', default: [] })
+  @Column({
+    type: process.env.DATABASE_URL ? 'jsonb' : 'simple-array',
+    nullable: true,
+  })
   photos: string[]; // up to 5 photos (carousel)
 
   @Column({ type: 'text', nullable: true })
