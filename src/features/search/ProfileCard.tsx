@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, LikeResult } from '@/types';
 import { likesApi } from '@/api/likes.api';
@@ -16,19 +17,30 @@ interface Props {
 }
 
 export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
-  const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
   const t = useUiTranslations();
-  const lang = useUiStore((s) => s.lang);
   const showMatch = useUiStore((s) => s.showMatch);
   const currentUser = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
+
+  // Photo carousel
+  const allPhotos = profile.photos?.length ? profile.photos : profile.photo ? [profile.photo] : [];
+  const [photoIdx, setPhotoIdx] = useState(0);
+
+  const prevPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPhotoIdx((i) => (i - 1 + allPhotos.length) % allPhotos.length);
+  };
+  const nextPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPhotoIdx((i) => (i + 1) % allPhotos.length);
+  };
 
   const likeMutation = useMutation({
     mutationFn: () => likesApi.toggle(profile.id),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['likes', 'given'] });
       const previous = queryClient.getQueryData<string[]>(['likes', 'given']);
-      // Optimistically toggle
       queryClient.setQueryData<string[]>(['likes', 'given'], (old = []) =>
         isLiked ? old.filter((id) => id !== profile.id) : [...old, profile.id],
       );
@@ -40,28 +52,21 @@ export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
       }
     },
     onSuccess: (result: LikeResult) => {
-      // Reconcile with server response
       queryClient.setQueryData<string[]>(['likes', 'given'], (old = []) =>
         result.liked ? [...old.filter((id) => id !== profile.id), profile.id] : old.filter((id) => id !== profile.id),
       );
-
-      // Mutual like → show match popup
       if (result.match && result.conversationId && currentUser) {
-        showMatch({
-          partnerId: profile.id,
-          partnerName: profile.name,
-          partnerPhoto: profile.photo,
-          conversationId: result.conversationId,
-        });
+        showMatch({ partnerId: profile.id, partnerName: profile.name, partnerPhoto: profile.photo, conversationId: result.conversationId });
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }
     },
   });
 
+  const currentPhoto = allPhotos[photoIdx];
+
   return (
     <div className={`fade-up-${Math.min(index + 1, 6)}`}>
       <div
-        onClick={() => setExpanded((e) => !e)}
         style={{
           background: g.card,
           borderRadius: theme.radius.lg, overflow: 'hidden',
@@ -70,19 +75,49 @@ export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
           boxShadow: isLiked ? theme.shadow.cardActive : theme.shadow.card,
           transition: 'border-color 0.3s, box-shadow 0.3s',
         }}
+        onClick={() => navigate(`/users/${profile.id}`)}
       >
         {/* Photo */}
         <div style={{ position: 'relative', height: 280 }}>
-          {profile.photo
-            ? <img src={profile.photo} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          {currentPhoto
+            ? <img src={currentPhoto} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <div style={{ width: '100%', height: '100%', background: 'rgba(86,171,145,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64 }}>👤</div>
           }
           <div style={{ position: 'absolute', inset: 0, background: g.overlay }} />
 
+          {/* Photo navigation arrows */}
+          {allPhotos.length > 1 && (
+            <>
+              <button onClick={prevPhoto} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.4)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+              <button onClick={nextPhoto} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.4)', border: 'none', borderRadius: '50%', width: 32, height: 32, color: '#fff', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+              {/* Dots */}
+              <div style={{ position: 'absolute', bottom: 60, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 5 }}>
+                {allPhotos.map((_, i) => (
+                  <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: i === photoIdx ? '#fff' : 'rgba(255,255,255,0.4)', transition: 'background 0.2s' }} />
+                ))}
+              </div>
+            </>
+          )}
+
           {/* Age badge */}
           <div style={{ position: 'absolute', top: 14, left: 14, background: 'rgba(8,20,14,0.65)', backdropFilter: 'blur(8px)', border: `1px solid ${theme.colors.glassBorder}`, borderRadius: 50, padding: '4px 13px', fontFamily: theme.fonts.sans, fontSize: 12, color: theme.colors.green.light, fontWeight: 600 }}>
-            {calcAge(profile.birth)} {t.years}
+            {calcAge(profile.birth)} р.
           </div>
+
+          {/* Online indicator */}
+          {profile.online && (
+            <div style={{ position: 'absolute', top: 14, left: 14, width: 10, height: 10, background: '#22c55e', borderRadius: '50%', border: '2px solid #0d2137', marginTop: 0, marginLeft: 0, display: 'none' }} />
+          )}
+
+          {/* Online dot on top-left corner of age badge */}
+          {profile.online && (
+            <div style={{ position: 'absolute', top: 50, left: 14 }}>
+              <div style={{ background: 'rgba(8,20,14,0.65)', backdropFilter: 'blur(8px)', border: `1px solid rgba(34,197,94,0.5)`, borderRadius: 50, padding: '2px 10px', fontFamily: theme.fonts.sans, fontSize: 11, color: '#22c55e', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
+                онлайн
+              </div>
+            </div>
+          )}
 
           {/* Liked indicator */}
           {isLiked && (
@@ -103,17 +138,8 @@ export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
           </div>
         </div>
 
-        {/* Bio expand */}
-        <div style={{ overflow: 'hidden', maxHeight: expanded ? 120 : 0, transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)' }}>
-          <div style={{ padding: '14px 18px 4px' }}>
-            <p style={{ fontFamily: theme.fonts.serif, fontSize: 16, fontStyle: 'italic', color: 'rgba(232,244,232,0.72)', lineHeight: 1.65 }}>
-              {profile.bio || '—'}
-            </p>
-          </div>
-        </div>
-
         {/* Like button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 16px', gap: 10 }}>
           <button
             className="lb"
             onClick={(e) => { e.stopPropagation(); likeMutation.mutate(); }}

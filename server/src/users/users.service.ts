@@ -40,9 +40,25 @@ export class UsersService {
     return this.repo.findOne({ where: { id } });
   }
 
+  async findPublicById(id: string): Promise<User | null> {
+    return this.repo.createQueryBuilder('u')
+      .select([
+        'u.id', 'u.name', 'u.birth', 'u.city', 'u.photo', 'u.photos',
+        'u.bio', 'u.gender', 'u.language',
+        'u.lookingForGender', 'u.lookingForCity', 'u.lookingForAgeMin', 'u.lookingForAgeMax',
+      ])
+      .where('u.id = :id AND u.isActive = true', { id })
+      .getOne();
+  }
+
   async findAll(exceptId: string, filters?: ProfileFilters): Promise<User[]> {
     const qb = this.repo.createQueryBuilder('u')
-      .select(['u.id', 'u.name', 'u.birth', 'u.city', 'u.photo', 'u.bio', 'u.gender', 'u.language', 'u.lookingForGender', 'u.lookingForCity', 'u.lookingForAgeMin', 'u.lookingForAgeMax'])
+      .select([
+        'u.id', 'u.name', 'u.birth', 'u.city', 'u.photo', 'u.photos',
+        'u.bio', 'u.gender', 'u.language',
+        'u.lookingForGender', 'u.lookingForCity', 'u.lookingForAgeMin', 'u.lookingForAgeMax',
+        'u.whoCanContact',
+      ])
       .where('u.id != :id', { id: exceptId })
       .andWhere('u.isActive = true')
       .orderBy('u.createdAt', 'DESC')
@@ -73,11 +89,19 @@ export class UsersService {
 
   async updateProfile(
     userId: string,
-    data: Partial<Pick<User, 'name' | 'birth' | 'city' | 'bio' | 'photo' | 'gender' | 'language' | 'lookingForGender' | 'lookingForCity' | 'lookingForAgeMin' | 'lookingForAgeMax'>>,
+    data: Partial<Pick<User,
+      'name' | 'birth' | 'city' | 'bio' | 'photo' | 'photos' |
+      'gender' | 'language' | 'whoCanContact' |
+      'lookingForGender' | 'lookingForCity' | 'lookingForAgeMin' | 'lookingForAgeMax'
+    >>,
   ): Promise<User> {
     const user = await this.findById(userId);
     if (!user) throw new NotFoundException('User not found');
     Object.assign(user, data);
+    // Keep photo in sync with first photo in photos array
+    if (data.photos && data.photos.length > 0) {
+      user.photo = data.photos[0];
+    }
     return this.repo.save(user);
   }
 

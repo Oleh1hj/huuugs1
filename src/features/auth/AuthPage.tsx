@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +13,17 @@ import { Particles } from '@/components/Particles';
 import { theme, g } from '@/styles/theme';
 
 const LANGUAGES = ['Українська', 'Білоруська', 'Польська', 'Англійська', 'Російська', 'Інша'];
+
+const DRAFT_KEY = 'huugs_reg_draft';
+
+function readDraft(): Partial<RegisterForm> {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 
 const loginSchema = z.object({
   email: z.string().email('Невірний email'),
@@ -96,10 +107,20 @@ export function AuthPage() {
   const navigate = useNavigate();
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  const draft = readDraft();
   const registerForm = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { gender: 'male', lookingForGender: 'any', language: 'Українська' },
+    defaultValues: { gender: 'male', lookingForGender: 'any', language: 'Українська', ...draft },
   });
+
+  // Persist draft to sessionStorage on every change (exclude photo & password)
+  useEffect(() => {
+    const { unsubscribe } = registerForm.watch((values) => {
+      const { photo, password, ...toSave } = values as any;
+      try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(toSave)); } catch {}
+    });
+    return unsubscribe;
+  }, [registerForm]);
 
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: LoginForm) => authApi.login(email, password),
@@ -112,7 +133,7 @@ export function AuthPage() {
       lookingForAgeMin: data.lookingForAgeMin ? Number(data.lookingForAgeMin) : undefined,
       lookingForAgeMax: data.lookingForAgeMax ? Number(data.lookingForAgeMax) : undefined,
     }),
-    onSuccess: (data) => { setAuth(data.user, data.accessToken, data.refreshToken); navigate('/search'); },
+    onSuccess: (data) => { sessionStorage.removeItem(DRAFT_KEY); setAuth(data.user, data.accessToken, data.refreshToken); navigate('/search'); },
     onError: () => { /* error rendered below */ },
   });
 

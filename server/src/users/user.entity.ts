@@ -28,6 +28,9 @@ export class User {
   @Column({ nullable: true, type: 'text' })
   photo: string;
 
+  @Column({ type: 'jsonb', default: [] })
+  photos: string[]; // up to 5 photos (carousel)
+
   @Column({ type: 'text', nullable: true })
   bio: string;
 
@@ -48,6 +51,9 @@ export class User {
 
   @Column({ type: 'int', nullable: true })
   lookingForAgeMax: number;
+
+  @Column({ length: 20, default: 'anyone' })
+  whoCanContact: string; // 'anyone' | 'liked_me' | 'mutual'
 
   @Column({ default: false })
   isAdmin: boolean;
