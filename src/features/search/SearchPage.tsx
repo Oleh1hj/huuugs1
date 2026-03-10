@@ -1,18 +1,28 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { profilesApi } from '@/api/profiles.api';
+import { chatsApi } from '@/api/chats.api';
 import { likesApi } from '@/api/likes.api';
 import { ProfileCard } from './ProfileCard';
 import { useUiTranslations } from '@/i18n';
 import { theme } from '@/styles/theme';
 
 export function SearchPage() {
-  const [city, setCity] = useState('');
   const t = useUiTranslations();
+  const [city, setCity] = useState('');
+  const [genderFilter, setGenderFilter] = useState('any');
+  const [ageMin, setAgeMin] = useState('');
+  const [ageMax, setAgeMax] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ['profiles'],
-    queryFn: profilesApi.getAll,
+    queryKey: ['profiles', genderFilter, city, ageMin, ageMax],
+    queryFn: () => profilesApi.getAllFiltered({
+      gender: genderFilter !== 'any' ? genderFilter : undefined,
+      city: city.trim() || undefined,
+      ageMin: ageMin ? Number(ageMin) : undefined,
+      ageMax: ageMax ? Number(ageMax) : undefined,
+    }),
     staleTime: 5 * 60_000,
   });
 
@@ -24,57 +34,102 @@ export function SearchPage() {
   const { data: receivedLikes = [] } = useQuery({
     queryKey: ['likes', 'received'],
     queryFn: likesApi.getReceived,
+    refetchInterval: 60_000,
   });
 
-  const likedMeBackIds = new Set(receivedLikes.map((u) => u.id));
+  const { data: onlineIds = [] } = useQuery({
+    queryKey: ['online-users'],
+    queryFn: chatsApi.getOnlineUsers,
+    refetchInterval: 30_000,
+  });
 
-  const filtered = city.trim()
-    ? profiles.filter((p) => p.city.toLowerCase().includes(city.trim().toLowerCase()))
-    : profiles;
+  const onlineSet = new Set(onlineIds);
+  const likedMeBackIds = new Set(receivedLikes.map((u) => u.id));
+  const hasActiveFilters = genderFilter !== 'any' || !!ageMin || !!ageMax;
 
   return (
     <div className="fade-up">
-      {/* Search bar */}
-      <div style={{ position: 'relative', marginBottom: 20 }}>
-        <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none', opacity: 0.5 }}>🌿</span>
-        <input
-          type="text"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder={t.cityPlaceholder}
+      {/* Search + filter bar */}
+      <div style={{ marginBottom: 14, display: 'flex', gap: 8 }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none', opacity: 0.5 }}>🌿</span>
+          <input
+            type="text"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder={t.cityPlaceholder}
+            style={{
+              width: '100%', padding: '14px 44px 14px 46px', boxSizing: 'border-box',
+              background: theme.colors.glass,
+              border: `1.5px solid ${theme.colors.glassBorder}`,
+              borderRadius: 50, fontSize: 15,
+              fontFamily: theme.fonts.sans, color: theme.colors.text,
+            }}
+          />
+          {city && (
+            <span onClick={() => setCity('')} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</span>
+          )}
+        </div>
+        <button
+          onClick={() => setShowFilters((s) => !s)}
           style={{
-            width: '100%', padding: '14px 44px 14px 46px',
-            background: theme.colors.glass,
-            border: `1.5px solid ${theme.colors.glassBorder}`,
-            borderRadius: 50, fontSize: 15,
-            fontFamily: theme.fonts.sans, color: theme.colors.text,
+            padding: '0 16px', borderRadius: 50,
+            background: (showFilters || hasActiveFilters) ? 'rgba(86,171,145,0.3)' : theme.colors.glass,
+            border: `1.5px solid ${(showFilters || hasActiveFilters) ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`,
+            color: (showFilters || hasActiveFilters) ? theme.colors.green.light : theme.colors.textMuted,
+            fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            flexShrink: 0, whiteSpace: 'nowrap',
           }}
-        />
-        {city && (
-          <span onClick={() => setCity('')} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</span>
-        )}
+        >
+          ⚙ Фільтр{hasActiveFilters ? ' ●' : ''}
+        </button>
       </div>
 
-      {/* Loading */}
+      {/* Filters panel */}
+      {showFilters && (
+        <div style={{
+          background: theme.colors.glass,
+          border: `1px solid ${theme.colors.glassBorder}`,
+          borderRadius: 16, padding: '14px 16px', marginBottom: 14,
+          display: 'flex', flexDirection: 'column', gap: 12,
+        }}>
+          <div>
+            <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Стать</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[{ label: 'Всі', value: 'any' }, { label: 'Хлопці', value: 'male' }, { label: 'Дівчата', value: 'female' }].map((o) => (
+                <button key={o.value} onClick={() => setGenderFilter(o.value)} style={{ flex: 1, padding: '9px 4px', borderRadius: 12, background: genderFilter === o.value ? 'rgba(86,171,145,0.3)' : 'rgba(255,255,255,0.05)', border: `1.5px solid ${genderFilter === o.value ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`, color: genderFilter === o.value ? theme.colors.green.light : theme.colors.textMuted, fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{o.label}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Вік</div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="number" min={18} max={100} placeholder="від" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} style={{ flex: 1, padding: '10px 12px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: 12, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text }} />
+              <span style={{ color: theme.colors.textMuted, fontSize: 13 }}>—</span>
+              <input type="number" min={18} max={100} placeholder="до" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} style={{ flex: 1, padding: '10px 12px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: 12, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text }} />
+              {(ageMin || ageMax) && <button onClick={() => { setAgeMin(''); setAgeMax(''); }} style={{ background: 'none', border: 'none', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18 }}>✕</button>}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isLoading && (
         <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: theme.fonts.sans, color: theme.colors.textMuted, fontSize: 14 }}>
           🌿 {t.loadingProfiles}
         </div>
       )}
 
-      {/* Profile cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {filtered.map((p, i) => (
+        {profiles.map((p, i) => (
           <ProfileCard
             key={p.id}
-            profile={p}
+            profile={{ ...p, online: onlineSet.has(p.id) }}
             isLiked={likedIds.includes(p.id)}
             likedMeBack={likedMeBackIds.has(p.id)}
             index={i}
           />
         ))}
-
-        {!isLoading && filtered.length === 0 && (
+        {!isLoading && profiles.length === 0 && (
           <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: theme.fonts.sans, color: theme.colors.textFaint, fontSize: 15 }}>
             🌙 {t.nobody}
             {city && <div style={{ fontSize: 13, marginTop: 6 }}>{t.nobodyCity(city)}</div>}

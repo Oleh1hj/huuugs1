@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from './user.entity';
 import { UsersService } from './users.service';
-import { IsOptional, IsString, MaxLength, IsDateString, IsIn, IsInt, Min, Max } from 'class-validator';
+import {
+  IsOptional, IsString, MaxLength, IsDateString, IsIn, IsInt, Min, Max, IsArray,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class UpdateProfileDto {
@@ -12,12 +14,14 @@ class UpdateProfileDto {
   @IsOptional() @IsString() @MaxLength(100) city?: string;
   @IsOptional() @IsString() @MaxLength(500) bio?: string;
   @IsOptional() @IsString() photo?: string;
+  @IsOptional() @IsArray() @IsString({ each: true }) photos?: string[];
   @IsOptional() @IsIn(['male', 'female']) gender?: string;
   @IsOptional() @IsString() @MaxLength(100) language?: string;
   @IsOptional() @IsIn(['male', 'female', 'any']) lookingForGender?: string;
   @IsOptional() @IsString() @MaxLength(100) lookingForCity?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) lookingForAgeMin?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) lookingForAgeMax?: number;
+  @IsOptional() @IsIn(['anyone', 'liked_me', 'mutual']) whoCanContact?: string;
 }
 
 class ProfilesQueryDto {
@@ -40,6 +44,11 @@ export class UsersController {
       ageMin: query.ageMin,
       ageMax: query.ageMax,
     });
+  }
+
+  @Get(':id')
+  getPublicProfile(@Param('id') id: string) {
+    return this.usersService.findPublicById(id);
   }
 
   @Patch('me')

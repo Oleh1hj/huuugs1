@@ -3,15 +3,24 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
 import { ChatsService } from './chats.service';
+import { ChatsGateway } from './chats.gateway';
 
 @Controller('chats')
 @UseGuards(JwtAuthGuard)
 export class ChatsController {
-  constructor(private readonly chatsService: ChatsService) {}
+  constructor(
+    private readonly chatsService: ChatsService,
+    private readonly chatsGateway: ChatsGateway,
+  ) {}
 
   @Get()
   getMyConversations(@CurrentUser() me: User) {
     return this.chatsService.getMyConversations(me.id);
+  }
+
+  @Get('online-users')
+  getOnlineUsers() {
+    return { ids: this.chatsGateway.getOnlineUserIds() };
   }
 
   @Get(':conversationId/messages')

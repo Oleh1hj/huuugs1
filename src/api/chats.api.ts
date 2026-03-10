@@ -10,4 +10,7 @@ export const chatsApi = {
 
   markAsRead: (conversationId: string) =>
     api.patch(`/chats/${conversationId}/read`),
+
+  getOnlineUsers: () =>
+    api.get<{ ids: string[] }>('/chats/online-users').then((r) => r.data.ids),
 };

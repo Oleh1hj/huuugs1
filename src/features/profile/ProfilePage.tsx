@@ -57,12 +57,53 @@ function ToggleGroup({ options, value, onChange }: {
   );
 }
 
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 600;
+        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export function ProfilePage() {
   const { user, updateUser, logout } = useAuthStore();
   const t = useUiTranslations();
   const [editMode, setEditMode] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [whoCanContact, setWhoCanContact] = useState('anyone');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm({
+    defaultValues: {
+      name: user?.name ?? '',
+      birth: user?.birth ?? '',
+      city: user?.city ?? '',
+      bio: user?.bio ?? '',
+      gender: user?.gender ?? 'male',
+      language: user?.language ?? 'Українська',
+      lookingForGender: user?.lookingForGender ?? 'any',
+      lookingForCity: user?.lookingForCity ?? '',
+      lookingForAgeMin: user?.lookingForAgeMin ?? '',
+      lookingForAgeMax: user?.lookingForAgeMax ?? '',
+    },
+  });
+
+  const genderVal = watch('gender');
+  const lookingForGenderVal = watch('lookingForGender');
 
   // Reset form with fresh user data every time edit mode is opened
   useEffect(() => {
@@ -78,56 +119,22 @@ export function ProfilePage() {
         lookingForCity: user.lookingForCity ?? '',
         lookingForAgeMin: user.lookingForAgeMin ?? '',
         lookingForAgeMax: user.lookingForAgeMax ?? '',
-        photo: user.photo ?? '',
       });
-      setPhotoPreview('');
+      setPhotos(user.photos ?? (user.photo ? [user.photo] : []));
+      setWhoCanContact(user.whoCanContact ?? 'anyone');
     }
   }, [editMode]); // eslint-disable-line
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm({
-    defaultValues: {
-      name: user?.name ?? '',
-      birth: user?.birth ?? '',
-      city: user?.city ?? '',
-      bio: user?.bio ?? '',
-      gender: user?.gender ?? 'male',
-      language: user?.language ?? 'Українська',
-      lookingForGender: user?.lookingForGender ?? 'any',
-      lookingForCity: user?.lookingForCity ?? '',
-      lookingForAgeMin: user?.lookingForAgeMin ?? '',
-      lookingForAgeMax: user?.lookingForAgeMax ?? '',
-      photo: user?.photo ?? '',
-    },
-  });
+  const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const compressed = await Promise.all(files.map(compressImage));
+    setPhotos((prev) => [...prev, ...compressed].slice(0, 5));
+    e.target.value = '';
+  };
 
-  const genderVal = watch('gender');
-  const lookingForGenderVal = watch('lookingForGender');
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const dataUrl = evt.target?.result as string;
-      if (!dataUrl) return;
-      const img = new Image();
-      img.onload = () => {
-        const MAX = 600;
-        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * ratio);
-        canvas.height = Math.round(img.height * ratio);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const result = canvas.toDataURL('image/jpeg', 0.75);
-        setPhotoPreview(result);
-        setValue('photo', result);
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+  const removePhoto = (idx: number) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const [saveError, setSaveError] = useState<string>('');
@@ -137,7 +144,6 @@ export function ProfilePage() {
     onSuccess: (updated) => {
       updateUser(updated);
       setEditMode(false);
-      setPhotoPreview('');
       setSaveError('');
     },
     onError: () => {
@@ -147,15 +153,15 @@ export function ProfilePage() {
 
   if (!user) return null;
 
-  const currentPhoto = photoPreview || user.photo;
+  const displayPhoto = (user.photos?.[0] ?? user.photo) || null;
 
   return (
     <div className="fade-up">
       <div style={{ background: g.card, borderRadius: theme.radius.xl, overflow: 'hidden', border: `1px solid ${theme.colors.glassBorder}`, backdropFilter: 'blur(20px)' }}>
         {/* Photo banner */}
         <div style={{ position: 'relative', height: 280 }}>
-          {currentPhoto
-            ? <img src={currentPhoto} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          {displayPhoto
+            ? <img src={displayPhoto} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             : <div style={{ width: '100%', height: '100%', background: 'rgba(86,171,145,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Avatar photo={null} name={user.name} size={120} />
               </div>
@@ -173,6 +179,14 @@ export function ProfilePage() {
         <div style={{ padding: '20px 22px 26px' }}>
           {!editMode ? (
             <>
+              {/* Photo thumbnails */}
+              {(user.photos?.length ?? 0) > 1 && (
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto' }}>
+                  {user.photos.map((p, i) => (
+                    <img key={i} src={p} alt="" style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', flexShrink: 0, border: i === 0 ? `2px solid ${theme.colors.green.mid}` : `1px solid ${theme.colors.glassBorder}` }} />
+                  ))}
+                </div>
+              )}
               <p style={{ fontFamily: theme.fonts.serif, fontSize: 17, fontStyle: 'italic', color: 'rgba(232,244,232,0.7)', lineHeight: 1.7, marginBottom: 16 }}>{user.bio || '—'}</p>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                 {user.gender && <Chip icon={user.gender === 'male' ? '♂' : '♀'} label={user.gender === 'male' ? t.genderMale : t.genderFemale} />}
@@ -186,12 +200,15 @@ export function ProfilePage() {
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {user.lookingForGender && <Chip icon="❤" label={user.lookingForGender === 'male' ? t.lookingMale : user.lookingForGender === 'female' ? t.lookingFemale : t.lookingAny} />}
                     {user.lookingForCity && <Chip icon="📍" label={user.lookingForCity} />}
-                    {user.lookingForAgeMin && user.lookingForAgeMax && (
-                      <Chip icon="🎯" label={`${user.lookingForAgeMin}–${user.lookingForAgeMax} р.`} />
-                    )}
+                    {user.lookingForAgeMin && user.lookingForAgeMax && <Chip icon="🎯" label={`${user.lookingForAgeMin}–${user.lookingForAgeMax} р.`} />}
                   </div>
                 </div>
               )}
+              {/* Who can contact */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Хто може писати</div>
+                <Chip icon="🔒" label={{ anyone: 'Всі', liked_me: 'Хто мені вподобав', mutual: 'Лише взаємні' }[user.whoCanContact ?? 'anyone'] ?? 'Всі'} />
+              </div>
               <Button fullWidth onClick={() => setEditMode(true)}>{t.editBtn}</Button>
               <Button fullWidth variant="ghost" onClick={logout} style={{ marginTop: 10 }}>{t.logout}</Button>
             </>
@@ -199,6 +216,8 @@ export function ProfilePage() {
             <form onSubmit={handleSubmit((d) => {
               const payload = {
                 ...d,
+                photos,
+                whoCanContact,
                 lookingForAgeMin: d.lookingForAgeMin !== '' && d.lookingForAgeMin != null ? Number(d.lookingForAgeMin) : undefined,
                 lookingForAgeMax: d.lookingForAgeMax !== '' && d.lookingForAgeMax != null ? Number(d.lookingForAgeMax) : undefined,
               };
@@ -206,27 +225,25 @@ export function ProfilePage() {
               updateMutation.mutate(payload as any);
             })} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              {/* Photo */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    width: 90, height: 90, borderRadius: '50%', cursor: 'pointer',
-                    border: `2px dashed ${currentPhoto ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`,
-                    background: 'transparent',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {currentPhoto
-                    ? <img src={currentPhoto} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: 22 }}>📷</div>
-                        <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint }}>Фото</div>
-                      </div>
-                  }
+              {/* Photos management */}
+              <div>
+                <FieldLabel>Фото (до 5)</FieldLabel>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {photos.map((p, i) => (
+                    <div key={i} style={{ position: 'relative' }}>
+                      <img src={p} alt="" style={{ width: 70, height: 70, borderRadius: 12, objectFit: 'cover', border: i === 0 ? `2px solid ${theme.colors.green.mid}` : `1px solid ${theme.colors.glassBorder}` }} />
+                      {i === 0 && <div style={{ position: 'absolute', bottom: -6, left: 0, right: 0, textAlign: 'center', fontFamily: theme.fonts.sans, fontSize: 9, color: theme.colors.green.light }}>Головне</div>}
+                      <button type="button" onClick={() => removePhoto(i)} style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: '#e11d48', border: 'none', color: '#fff', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
+                    </div>
+                  ))}
+                  {photos.length < 5 && (
+                    <button type="button" onClick={() => fileInputRef.current?.click()} style={{ width: 70, height: 70, borderRadius: 12, background: 'rgba(86,171,145,0.06)', border: `2px dashed ${theme.colors.glassBorder}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                      <span style={{ fontSize: 18 }}>📷</span>
+                      <span style={{ fontFamily: theme.fonts.sans, fontSize: 9, color: theme.colors.textFaint }}>Додати</span>
+                    </button>
+                  )}
                 </div>
-                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
+                <input ref={fileInputRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={handleAddPhoto} />
               </div>
 
               <Input label={t.fieldName} error={errors.name?.message} {...register('name', { required: true })} />
@@ -262,11 +279,7 @@ export function ProfilePage() {
                 <ToggleGroup
                   value={lookingForGenderVal}
                   onChange={(v) => setValue('lookingForGender', v)}
-                  options={[
-                    { label: t.lookingMale, value: 'male' },
-                    { label: t.lookingFemale, value: 'female' },
-                    { label: t.lookingAny, value: 'any' },
-                  ]}
+                  options={[{ label: t.lookingMale, value: 'male' }, { label: t.lookingFemale, value: 'female' }, { label: t.lookingAny, value: 'any' }]}
                 />
               </div>
 
@@ -281,6 +294,21 @@ export function ProfilePage() {
                 </div>
               </div>
 
+              {/* Who can contact me */}
+              <div style={{ height: 1, background: theme.colors.glassBorder }} />
+              <div>
+                <FieldLabel>Хто може мені писати</FieldLabel>
+                <ToggleGroup
+                  value={whoCanContact}
+                  onChange={setWhoCanContact}
+                  options={[
+                    { label: 'Всі', value: 'anyone' },
+                    { label: 'Вподобали', value: 'liked_me' },
+                    { label: 'Взаємні', value: 'mutual' },
+                  ]}
+                />
+              </div>
+
               {saveError && (
                 <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: theme.radius.md, padding: '10px 14px' }}>
                   {saveError}
@@ -288,7 +316,7 @@ export function ProfilePage() {
               )}
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <Button type="submit" fullWidth loading={updateMutation.isPending}>{t.saveBtn}</Button>
-                <Button type="button" variant="ghost" fullWidth onClick={() => { reset(); setPhotoPreview(''); setEditMode(false); setSaveError(''); }}>{t.cancelBtn}</Button>
+                <Button type="button" variant="ghost" fullWidth onClick={() => { reset(); setEditMode(false); setSaveError(''); }}>{t.cancelBtn}</Button>
               </div>
             </form>
           )}

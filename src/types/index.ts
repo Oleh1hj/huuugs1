@@ -7,6 +7,7 @@ export interface User {
   birth: string;       // ISO date
   city: string;
   photo: string | null;
+  photos: string[];    // carousel photos (up to 5)
   bio: string | null;
   gender: string;      // 'male' | 'female'
   language: string;
@@ -14,8 +15,10 @@ export interface User {
   lookingForCity: string | null;
   lookingForAgeMin: number | null;
   lookingForAgeMax: number | null;
+  whoCanContact: string; // 'anyone' | 'liked_me' | 'mutual'
   isAdmin: boolean;
   createdAt: string;
+  online?: boolean;    // runtime flag set client-side
 }
 
 export interface Conversation {

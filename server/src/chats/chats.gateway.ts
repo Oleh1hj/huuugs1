@@ -105,6 +105,11 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     socket.to(`conv:${conversationId}`).emit('typing', { userId: socket.userId });
   }
 
+  /** Return IDs of all currently connected users */
+  getOnlineUserIds(): string[] {
+    return Array.from(this.userSockets.keys());
+  }
+
   /** Notify a specific user that they have a new match */
   notifyMatch(userId: string, payload: object) {
     const sockets = this.userSockets.get(userId);

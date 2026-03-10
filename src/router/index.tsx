@@ -7,6 +7,7 @@ import { LikesPage } from '@/features/likes/LikesPage';
 import { ChatsPage } from '@/features/chat/ChatsPage';
 import { ChatRoom } from '@/features/chat/ChatRoom';
 import { ProfilePage } from '@/features/profile/ProfilePage';
+import { UserProfilePage } from '@/features/search/UserProfilePage';
 import { SupportPage } from '@/features/support/SupportPage';
 import { AdminSupportPage } from '@/features/support/AdminSupportPage';
 
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
           { path: 'likes',   element: <LikesPage /> },
           { path: 'chats',   element: <ChatsPage /> },
           { path: 'chats/:conversationId', element: <ChatRoom /> },
+          { path: 'users/:userId', element: <UserProfilePage /> },
           { path: 'support', element: <SupportRoute /> },
           { path: 'profile', element: <ProfilePage /> },
         ],
