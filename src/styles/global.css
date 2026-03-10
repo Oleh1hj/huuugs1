@@ -23,6 +23,10 @@ img { display: block; }
 @keyframes orbit     { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes heartPop  { 0%{transform:scale(1)} 40%{transform:scale(1.55)} 70%{transform:scale(0.9)} 100%{transform:scale(1)} }
 @keyframes slideIn   { from{opacity:0;transform:translateX(100%)} to{opacity:1;transform:translateX(0)} }
+@keyframes bottleSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(1440deg)} }
+@keyframes bottleGlow { 0%,100%{filter:drop-shadow(0 0 8px rgba(86,171,145,0.4))} 50%{filter:drop-shadow(0 0 32px rgba(86,171,145,1))} }
+
+.bottle-spinning { animation: bottleSpin 2s cubic-bezier(0.15,0.8,0.25,1) forwards, bottleGlow 2s ease-in-out; }
 
 .fade-up   { animation: fadeUp 0.4s ease both; }
 .fade-up-1 { animation: fadeUp 0.4s 0.08s ease both; }

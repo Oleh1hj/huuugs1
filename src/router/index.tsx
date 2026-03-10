@@ -10,6 +10,7 @@ import { ProfilePage } from '@/features/profile/ProfilePage';
 import { UserProfilePage } from '@/features/search/UserProfilePage';
 import { SupportPage } from '@/features/support/SupportPage';
 import { AdminSupportPage } from '@/features/support/AdminSupportPage';
+import { SpinBottlePage } from '@/features/bottle/SpinBottlePage';
 
 function RequireAuth() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
           { path: 'chats',   element: <ChatsPage /> },
           { path: 'chats/:conversationId', element: <ChatRoom /> },
           { path: 'users/:userId', element: <UserProfilePage /> },
+          { path: 'bottle', element: <SpinBottlePage /> },
           { path: 'support', element: <SupportRoute /> },
           { path: 'profile', element: <ProfilePage /> },
         ],
