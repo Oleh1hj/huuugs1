@@ -88,6 +88,16 @@ export class User {
   @Column({ type: 'date', nullable: true })
   lastCoinBonusAt: string | null;
 
+  // ── Status flags ──────────────────────────────────────────────────
+  @Column({ default: false })
+  isVerified: boolean; // blue checkmark, set by admin
+
+  @Column({ default: false })
+  isPremium: boolean; // premium account
+
+  @Column({ type: 'date', nullable: true })
+  premiumUntil: string | null; // premium expiry date
+
   @Column({ default: false })
   isAdmin: boolean;
 

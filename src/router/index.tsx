@@ -13,6 +13,7 @@ import { AdminSupportPage } from '@/features/support/AdminSupportPage';
 import { SpinBottlePage } from '@/features/bottle/SpinBottlePage';
 import { GroupsPage } from '@/features/groups/GroupsPage';
 import { GroupRoomPage } from '@/features/groups/GroupRoomPage';
+import { CoinShopPage } from '@/features/coins/CoinShopPage';
 
 function RequireAuth() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           { path: 'bottle', element: <SpinBottlePage /> },
           { path: 'groups', element: <GroupsPage /> },
           { path: 'groups/:groupId', element: <GroupRoomPage /> },
+          { path: 'coins', element: <CoinShopPage /> },
           { path: 'support', element: <SupportRoute /> },
           { path: 'profile', element: <ProfilePage /> },
         ],

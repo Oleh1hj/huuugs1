@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not } from 'typeorm';
+import { Repository, Not, In } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from './user.entity';
+import { BlockedUser } from './blocked-user.entity';
+import { ProfileView } from './profile-view.entity';
+import { Report } from './report.entity';
 import { RegisterDto } from '../auth/dto/register.dto';
 
 export interface ProfileFilters {
@@ -16,6 +19,9 @@ export interface ProfileFilters {
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly repo: Repository<User>,
+    @InjectRepository(BlockedUser) private readonly blockedRepo: Repository<BlockedUser>,
+    @InjectRepository(ProfileView) private readonly viewRepo: Repository<ProfileView>,
+    @InjectRepository(Report) private readonly reportRepo: Repository<Report>,
   ) {}
 
   async create(dto: RegisterDto): Promise<User> {
@@ -44,22 +50,32 @@ export class UsersService {
     return this.repo.createQueryBuilder('u')
       .select([
         'u.id', 'u.name', 'u.birth', 'u.city', 'u.photo', 'u.photos',
-        'u.bio', 'u.gender', 'u.language',
+        'u.bio', 'u.gender', 'u.language', 'u.country',
         'u.lookingForGender', 'u.lookingForCity', 'u.lookingForAgeMin', 'u.lookingForAgeMax',
+        'u.isVerified', 'u.isPremium',
       ])
       .where('u.id = :id AND u.isActive = true', { id })
       .getOne();
   }
 
   async findAll(exceptId: string, filters?: ProfileFilters): Promise<User[]> {
+    // Get IDs of users blocked by or blocking this user
+    const blockedByMe = await this.blockedRepo.find({ where: { blockerId: exceptId } });
+    const blockedMe = await this.blockedRepo.find({ where: { blockedId: exceptId } });
+    const excludeIds = [
+      exceptId,
+      ...blockedByMe.map((b) => b.blockedId),
+      ...blockedMe.map((b) => b.blockerId),
+    ];
+
     const qb = this.repo.createQueryBuilder('u')
       .select([
         'u.id', 'u.name', 'u.birth', 'u.city', 'u.photo', 'u.photos',
-        'u.bio', 'u.gender', 'u.language',
+        'u.bio', 'u.gender', 'u.language', 'u.country',
         'u.lookingForGender', 'u.lookingForCity', 'u.lookingForAgeMin', 'u.lookingForAgeMax',
-        'u.whoCanContact',
+        'u.whoCanContact', 'u.isVerified', 'u.isPremium',
       ])
-      .where('u.id != :id', { id: exceptId })
+      .where('u.id NOT IN (:...excludeIds)', { excludeIds })
       .andWhere('u.isActive = true')
       .orderBy('u.createdAt', 'DESC')
       .take(100);
@@ -67,17 +83,14 @@ export class UsersService {
     if (filters?.gender && filters.gender !== 'any') {
       qb.andWhere('u.gender = :gender', { gender: filters.gender });
     }
-
     if (filters?.city) {
       qb.andWhere('LOWER(u.city) LIKE :city', { city: `%${filters.city.toLowerCase()}%` });
     }
-
     if (filters?.ageMin) {
       const maxBirth = new Date();
       maxBirth.setFullYear(maxBirth.getFullYear() - filters.ageMin);
       qb.andWhere('u.birth <= :maxBirth', { maxBirth: maxBirth.toISOString().split('T')[0] });
     }
-
     if (filters?.ageMax) {
       const minBirth = new Date();
       minBirth.setFullYear(minBirth.getFullYear() - filters.ageMax);
@@ -100,7 +113,6 @@ export class UsersService {
     const user = await this.findById(userId);
     if (!user) throw new NotFoundException('User not found');
     Object.assign(user, data);
-    // Keep photo in sync with first photo in photos array
     if (data.photos && data.photos.length > 0) {
       user.photo = data.photos[0];
     }
@@ -125,5 +137,97 @@ export class UsersService {
 
   async validatePassword(user: User, password: string): Promise<boolean> {
     return bcrypt.compare(password, user.passwordHash);
+  }
+
+  // ── Block / Unblock ───────────────────────────────────────────────
+
+  async blockUser(blockerId: string, blockedId: string): Promise<void> {
+    if (blockerId === blockedId) throw new ForbiddenException('Cannot block yourself');
+    const existing = await this.blockedRepo.findOne({ where: { blockerId, blockedId } });
+    if (!existing) {
+      await this.blockedRepo.save(this.blockedRepo.create({ blockerId, blockedId }));
+    }
+  }
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<void> {
+    await this.blockedRepo.delete({ blockerId, blockedId });
+  }
+
+  async getBlockedIds(userId: string): Promise<string[]> {
+    const rows = await this.blockedRepo.find({ where: { blockerId: userId } });
+    return rows.map((r) => r.blockedId);
+  }
+
+  async isBlocked(blockerId: string, blockedId: string): Promise<boolean> {
+    const row = await this.blockedRepo.findOne({ where: { blockerId, blockedId } });
+    return !!row;
+  }
+
+  // ── Reports ───────────────────────────────────────────────────────
+
+  async reportUser(reporterId: string, reportedId: string, reason?: string): Promise<void> {
+    if (reporterId === reportedId) throw new ForbiddenException('Cannot report yourself');
+    await this.reportRepo.save(this.reportRepo.create({ reporterId, reportedId, reason }));
+  }
+
+  // ── Profile views ─────────────────────────────────────────────────
+
+  async recordView(viewerId: string, viewedId: string): Promise<void> {
+    if (viewerId === viewedId) return;
+    const existing = await this.viewRepo.findOne({ where: { viewerId, viewedId } });
+    if (existing) {
+      await this.viewRepo.update({ id: existing.id }, { viewedAt: new Date() } as any);
+    } else {
+      await this.viewRepo.save(this.viewRepo.create({ viewerId, viewedId }));
+    }
+  }
+
+  async getWhoViewedMe(userId: string): Promise<User[]> {
+    const views = await this.viewRepo.find({
+      where: { viewedId: userId },
+      order: { viewedAt: 'DESC' },
+      take: 50,
+    });
+    if (!views.length) return [];
+    const viewerIds = views.map((v) => v.viewerId);
+    const users = await this.repo.createQueryBuilder('u')
+      .select(['u.id', 'u.name', 'u.birth', 'u.city', 'u.photo', 'u.gender', 'u.isVerified', 'u.isPremium'])
+      .where('u.id IN (:...viewerIds)', { viewerIds })
+      .getMany();
+    // Preserve order
+    return viewerIds.map((id) => users.find((u) => u.id === id)).filter(Boolean) as User[];
+  }
+
+  async getViewCount(userId: string): Promise<number> {
+    return this.viewRepo.count({ where: { viewedId: userId } });
+  }
+
+  // ── Delete account ────────────────────────────────────────────────
+
+  async deleteAccount(userId: string): Promise<void> {
+    // Soft delete: mark inactive and clear personal data
+    await this.repo.update({ id: userId }, {
+      isActive: false,
+      name: 'Deleted User',
+      email: `deleted_${userId}@deleted.com`,
+      photo: null as any,
+      photos: [] as any,
+      bio: null as any,
+    });
+  }
+
+  // ── Admin: verify / set premium ───────────────────────────────────
+
+  async setVerified(adminId: string, userId: string, value: boolean): Promise<void> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+    await this.repo.update({ id: userId }, { isVerified: value });
+  }
+
+  async setPremium(adminId: string, userId: string, value: boolean, days = 30): Promise<void> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+    const until = value ? new Date(Date.now() + days * 86400_000).toISOString().split('T')[0] : null;
+    await this.repo.update({ id: userId }, { isPremium: value, premiumUntil: until });
   }
 }
