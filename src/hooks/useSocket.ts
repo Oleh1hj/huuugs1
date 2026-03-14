@@ -20,7 +20,12 @@ export function useSocket() {
     const socket = connectSocket();
     socketRef.current = socket;
 
-    socket.on('connect', () => console.log('[SOCKET] connected ✅', socket.id));
+    socket.on('connect', () => {
+      console.log('[SOCKET] connected ✅', socket.id);
+      // Refetch messages to catch any missed while disconnected
+      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    });
     socket.on('connect_error', (err) => console.error('[SOCKET] connect_error ❌', err.message));
     socket.on('disconnect', (reason) => console.warn('[SOCKET] disconnected:', reason));
 

@@ -19,7 +19,7 @@ export function getSocket(): Socket {
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       transports: ['websocket', 'polling'],
     });
   }
