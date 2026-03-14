@@ -91,7 +91,9 @@ export class UsersService {
     userId: string,
     data: Partial<Pick<User,
       'name' | 'birth' | 'city' | 'bio' | 'photo' | 'photos' |
-      'gender' | 'language' | 'whoCanContact' |
+      'gender' | 'language' | 'whoCanContact' | 'country' | 'coins' |
+      'contactFilterGender' | 'contactFilterAgeMin' | 'contactFilterAgeMax' |
+      'contactFilterSameCity' | 'contactFilterSameLanguage' | 'contactFilterSameCountry' |
       'lookingForGender' | 'lookingForCity' | 'lookingForAgeMin' | 'lookingForAgeMax'
     >>,
   ): Promise<User> {
@@ -103,6 +105,22 @@ export class UsersService {
       user.photo = data.photos[0];
     }
     return this.repo.save(user);
+  }
+
+  async updateCoins(userId: string, coins: number): Promise<void> {
+    await this.repo.update({ id: userId }, { coins });
+  }
+
+  async claimDailyBonus(userId: string): Promise<{ coins: number; alreadyClaimed: boolean }> {
+    const user = await this.findById(userId);
+    if (!user) throw new NotFoundException('User not found');
+    const today = new Date().toISOString().split('T')[0];
+    if (user.lastCoinBonusAt === today) {
+      return { coins: user.coins, alreadyClaimed: true };
+    }
+    const newCoins = Math.min(user.coins + 3, 15);
+    await this.repo.update({ id: userId }, { coins: newCoins, lastCoinBonusAt: today });
+    return { coins: newCoins, alreadyClaimed: false };
   }
 
   async validatePassword(user: User, password: string): Promise<boolean> {

@@ -26,4 +26,10 @@ export class LikesController {
   whoLikedMe(@CurrentUser() me: User) {
     return this.likesService.getWhoLikedMe(me.id);
   }
+
+  /** Super-like a profile (costs 1 coin) */
+  @Post('super/:userId')
+  superLike(@CurrentUser() me: User, @Param('userId') targetId: string) {
+    return this.likesService.superLike(me.id, targetId);
+  }
 }

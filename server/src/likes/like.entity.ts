@@ -24,6 +24,9 @@ export class Like {
   @JoinColumn({ name: 'toUserId' })
   toUser: User;
 
+  @Column({ default: false })
+  isSuper: boolean; // true = super-like (costs 1 coin)
+
   @CreateDateColumn()
   createdAt: Date;
 }

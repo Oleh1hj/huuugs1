@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { chatsApi } from '@/api/chats.api';
 import { likesApi } from '@/api/likes.api';
 import { supportApi } from '@/api/support.api';
+import { groupsApi } from '@/api/groups.api';
 import { useUiTranslations } from '@/i18n';
 import { theme } from '@/styles/theme';
 
@@ -18,6 +19,7 @@ export function NavBar() {
     { to: '/likes',   icon: '❤',  label: t.liked   },
     { to: '/bottle',  icon: '🍾', label: 'Гра'     },
     { to: '/chats',   icon: '💬', label: t.chats   },
+    { to: '/groups',  icon: '👥', label: 'Групи'   },
     { to: '/support', icon: '🛟', label: t.support  },
     { to: '/profile', icon: '◎',  label: t.profile  },
   ];
@@ -43,6 +45,13 @@ export function NavBar() {
     enabled: !!user,
   });
 
+  const { data: groupInvites = [] } = useQuery({
+    queryKey: ['group-invites'],
+    queryFn: groupsApi.getMyInvites,
+    refetchInterval: 30_000,
+    enabled: !!user,
+  });
+
   // Likes badge: how many received likes since user last visited LikesPage
   const seenCount = parseInt(localStorage.getItem(LIKES_SEEN_KEY) ?? '0');
   const newLikes = Math.max(0, whoLiked.length - seenCount);
@@ -61,12 +70,13 @@ export function NavBar() {
   const badges: Record<string, number> = {
     '/likes': newLikes,
     '/chats': unreadChats,
+    '/groups': groupInvites.length,
     '/support': supportUnread?.count ?? 0,
   };
 
   return (
     <nav style={{
-      display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 3,
+      display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2,
       background: 'rgba(255,255,255,0.04)',
       borderRadius: theme.radius.lg, padding: 5,
       border: `1px solid ${theme.colors.glassBorder}`,

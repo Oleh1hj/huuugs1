@@ -119,4 +119,24 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
     }
   }
+
+  /** Notify a specific user they received a super-like */
+  notifySuperLike(userId: string, payload: object) {
+    const sockets = this.userSockets.get(userId);
+    if (sockets) {
+      sockets.forEach((sid) => {
+        this.server.to(sid).emit('super-like', payload);
+      });
+    }
+  }
+
+  /** Emit an event to all sockets of a specific user */
+  emitToUser(userId: string, event: string, payload: object) {
+    const sockets = this.userSockets.get(userId);
+    if (sockets) {
+      sockets.forEach((sid) => {
+        this.server.to(sid).emit(event, payload);
+      });
+    }
+  }
 }

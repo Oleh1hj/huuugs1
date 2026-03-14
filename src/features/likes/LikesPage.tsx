@@ -68,11 +68,16 @@ export function LikesPage() {
           >
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <Avatar photo={person.photo} name={person.name} size={66} border="2.5px solid rgba(86,171,145,0.35)" />
-              <div style={{ position: 'absolute', bottom: 0, right: 0, background: theme.colors.green.mid, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, border: '2px solid #0d2137' }}>❤</div>
+              <div style={{ position: 'absolute', bottom: 0, right: 0, background: person.isSuper ? 'rgba(249,217,118,0.9)' : theme.colors.green.mid, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, border: '2px solid #0d2137' }}>{person.isSuper ? '⭐' : '❤'}</div>
             </div>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: theme.fonts.serif, fontSize: 21, fontWeight: 500, color: theme.colors.text }}>{person.name}</div>
+              <button
+                onClick={() => navigate(`/users/${person.id}`)}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+              >
+                <div style={{ fontFamily: theme.fonts.serif, fontSize: 21, fontWeight: 500, color: theme.colors.text }}>{person.name}</div>
+              </button>
               <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: theme.colors.textMuted, marginTop: 2 }}>
                 {calcAge(person.birth)} {t.years} · 🌿 {person.city}
               </div>
