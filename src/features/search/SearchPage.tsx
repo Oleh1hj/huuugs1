@@ -5,7 +5,6 @@ import { chatsApi } from '@/api/chats.api';
 import { likesApi } from '@/api/likes.api';
 import { ProfileCard } from './ProfileCard';
 import { useUiTranslations } from '@/i18n';
-import { theme } from '@/styles/theme';
 
 export function SearchPage() {
   const t = useUiTranslations();
@@ -49,37 +48,42 @@ export function SearchPage() {
   const likedMeBackIds = new Set(receivedLikes.map((u) => u.id));
   const hasActiveFilters = genderFilter !== 'any' || !!ageMin || !!ageMax || !!language;
 
+  const inputBase = {
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 14,
+    color: '#fff',
+    fontFamily: 'Inter, sans-serif',
+  } as const;
+
   return (
     <div className="fade-up">
       {/* Search + filter bar */}
       <div style={{ marginBottom: 14, display: 'flex', gap: 8 }}>
         <div style={{ position: 'relative', flex: 1 }}>
-          <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none', opacity: 0.5 }}>🌿</span>
+          <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 16, pointerEvents: 'none', opacity: 0.5 }}>🔍</span>
           <input
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder={t.cityPlaceholder}
             style={{
-              width: '100%', padding: '14px 44px 14px 46px', boxSizing: 'border-box',
-              background: theme.colors.glass,
-              border: `1.5px solid ${theme.colors.glassBorder}`,
-              borderRadius: 50, fontSize: 15,
-              fontFamily: theme.fonts.sans, color: theme.colors.text,
+              width: '100%', padding: '13px 44px 13px 46px', boxSizing: 'border-box',
+              ...inputBase,
             }}
           />
           {city && (
-            <span onClick={() => setCity('')} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</span>
+            <span onClick={() => setCity('')} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', color: '#FF8FB1', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>✕</span>
           )}
         </div>
         <button
           onClick={() => setShowFilters((s) => !s)}
           style={{
-            padding: '0 16px', borderRadius: 50,
-            background: (showFilters || hasActiveFilters) ? 'rgba(86,171,145,0.3)' : theme.colors.glass,
-            border: `1.5px solid ${(showFilters || hasActiveFilters) ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`,
-            color: (showFilters || hasActiveFilters) ? theme.colors.green.light : theme.colors.textMuted,
-            fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            padding: '0 16px', borderRadius: 14,
+            background: (showFilters || hasActiveFilters) ? 'rgba(255,69,120,0.15)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${(showFilters || hasActiveFilters) ? 'rgba(255,69,120,0.4)' : 'rgba(255,255,255,0.1)'}`,
+            color: (showFilters || hasActiveFilters) ? '#FF8FB1' : 'rgba(255,255,255,0.5)',
+            fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             flexShrink: 0, whiteSpace: 'nowrap',
           }}
         >
@@ -90,47 +94,54 @@ export function SearchPage() {
       {/* Filters panel */}
       {showFilters && (
         <div style={{
-          background: theme.colors.glass,
-          border: `1px solid ${theme.colors.glassBorder}`,
-          borderRadius: 16, padding: '14px 16px', marginBottom: 14,
-          display: 'flex', flexDirection: 'column', gap: 12,
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 20, padding: '16px', marginBottom: 14,
+          display: 'flex', flexDirection: 'column', gap: 14,
         }}>
           <div>
-            <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Стать</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Стать</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {[{ label: 'Всі', value: 'any' }, { label: 'Хлопці', value: 'male' }, { label: 'Дівчата', value: 'female' }].map((o) => (
-                <button key={o.value} onClick={() => setGenderFilter(o.value)} style={{ flex: 1, padding: '9px 4px', borderRadius: 12, background: genderFilter === o.value ? 'rgba(86,171,145,0.3)' : 'rgba(255,255,255,0.05)', border: `1.5px solid ${genderFilter === o.value ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`, color: genderFilter === o.value ? theme.colors.green.light : theme.colors.textMuted, fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{o.label}</button>
+                <button key={o.value} onClick={() => setGenderFilter(o.value)} style={{
+                  flex: 1, padding: '9px 4px', borderRadius: 12,
+                  background: genderFilter === o.value ? 'linear-gradient(135deg,#FF4578,#C850C0)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${genderFilter === o.value ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
+                  color: genderFilter === o.value ? '#fff' : 'rgba(255,255,255,0.5)',
+                  fontFamily: 'Inter, sans-serif', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  boxShadow: genderFilter === o.value ? '0 4px 12px rgba(255,69,120,0.3)' : 'none',
+                }}>{o.label}</button>
               ))}
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Вік</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Вік</div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="number" min={18} max={100} placeholder="від" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} style={{ flex: 1, padding: '10px 12px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: 12, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text }} />
-              <span style={{ color: theme.colors.textMuted, fontSize: 13 }}>—</span>
-              <input type="number" min={18} max={100} placeholder="до" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} style={{ flex: 1, padding: '10px 12px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: 12, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text }} />
-              {(ageMin || ageMax) && <button onClick={() => { setAgeMin(''); setAgeMax(''); }} style={{ background: 'none', border: 'none', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18 }}>✕</button>}
+              <input type="number" min={18} max={100} placeholder="від" value={ageMin} onChange={(e) => setAgeMin(e.target.value)} style={{ flex: 1, padding: '10px 12px', ...inputBase, borderRadius: 12 }} />
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>—</span>
+              <input type="number" min={18} max={100} placeholder="до" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} style={{ flex: 1, padding: '10px 12px', ...inputBase, borderRadius: 12 }} />
+              {(ageMin || ageMax) && <button onClick={() => { setAgeMin(''); setAgeMax(''); }} style={{ background: 'none', border: 'none', color: '#FF8FB1', cursor: 'pointer', fontSize: 18 }}>✕</button>}
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Мова</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 8 }}>Мова</div>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
                 placeholder="напр. українська"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                style={{ width: '100%', padding: '10px 36px 10px 12px', boxSizing: 'border-box', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: 12, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text }}
+                style={{ width: '100%', padding: '10px 36px 10px 12px', boxSizing: 'border-box', ...inputBase, borderRadius: 12 }}
               />
-              {language && <button onClick={() => setLanguage('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18 }}>✕</button>}
+              {language && <button onClick={() => setLanguage('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#FF8FB1', cursor: 'pointer', fontSize: 18 }}>✕</button>}
             </div>
           </div>
         </div>
       )}
 
       {isLoading && (
-        <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: theme.fonts.sans, color: theme.colors.textMuted, fontSize: 14 }}>
-          🌿 {t.loadingProfiles}
+        <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: 'Inter, sans-serif', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+          💫 {t.loadingProfiles}
         </div>
       )}
 
@@ -145,7 +156,7 @@ export function SearchPage() {
           />
         ))}
         {!isLoading && profiles.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: theme.fonts.sans, color: theme.colors.textFaint, fontSize: 15 }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', fontFamily: 'Inter, sans-serif', color: 'rgba(255,255,255,0.3)', fontSize: 15 }}>
             🌙 {t.nobody}
             {city && <div style={{ fontSize: 13, marginTop: 6 }}>{t.nobodyCity(city)}</div>}
           </div>

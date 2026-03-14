@@ -9,8 +9,6 @@ import { useAuthStore } from '@/store/auth.store';
 import { useUiStore } from '@/store/ui.store';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Particles } from '@/components/Particles';
-import { theme, g } from '@/styles/theme';
 
 const LANGUAGES = ['Українська', 'Білоруська', 'Польська', 'Англійська', 'Російська', 'Інша'];
 
@@ -47,7 +45,6 @@ const registerSchema = loginSchema.extend({
 type LoginForm = z.infer<typeof loginSchema>;
 type RegisterForm = z.infer<typeof registerSchema>;
 
-// Inline toggle for binary choices
 function ToggleGroup({ options, value, onChange }: {
   options: { label: string; value: string }[];
   value: string;
@@ -62,12 +59,13 @@ function ToggleGroup({ options, value, onChange }: {
           onClick={() => onChange(o.value)}
           style={{
             flex: 1, padding: '10px 8px',
-            background: value === o.value ? 'rgba(86,171,145,0.3)' : 'rgba(255,255,255,0.05)',
-            border: `1.5px solid ${value === o.value ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`,
-            borderRadius: theme.radius.md,
-            color: value === o.value ? theme.colors.green.light : theme.colors.textMuted,
-            fontFamily: theme.fonts.sans, fontSize: 14, fontWeight: 600,
+            background: value === o.value ? 'linear-gradient(135deg,#FF4578,#C850C0)' : 'rgba(255,255,255,0.05)',
+            border: `1.5px solid ${value === o.value ? 'transparent' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: 12,
+            color: value === o.value ? '#fff' : 'rgba(255,255,255,0.5)',
+            fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 600,
             cursor: 'pointer', transition: 'all 0.2s',
+            boxShadow: value === o.value ? '0 4px 12px rgba(255,69,120,0.3)' : 'none',
           }}
         >
           {o.label}
@@ -80,8 +78,8 @@ function ToggleGroup({ options, value, onChange }: {
 function SectionLabel({ children }: { children: string }) {
   return (
     <div style={{
-      fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2,
-      textTransform: 'uppercase', color: theme.colors.textFaint,
+      fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: 2,
+      textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
       marginBottom: 10, marginTop: 6,
     }}>
       {children}
@@ -92,8 +90,8 @@ function SectionLabel({ children }: { children: string }) {
 function FieldLabel({ children }: { children: string }) {
   return (
     <div style={{
-      fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2,
-      textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 6,
+      fontFamily: 'Inter, sans-serif', fontSize: 10, letterSpacing: 2,
+      textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 6,
     }}>
       {children}
     </div>
@@ -114,7 +112,6 @@ export function AuthPage() {
     defaultValues: { gender: 'male', lookingForGender: 'any', language: 'Українська', ...draft },
   });
 
-  // Persist draft to sessionStorage on every change (exclude photo & password)
   useEffect(() => {
     const { unsubscribe } = registerForm.watch((values) => {
       const { photo, password, ...toSave } = values as any;
@@ -183,72 +180,84 @@ export function AuthPage() {
 
   const labels = {
     ua: {
-      aboutMe: 'ПРО СЕБЕ',
-      lookingFor: 'КОГО ШУКАЮ',
-      male: 'Хлопець',
-      female: 'Дівчина',
-      any: 'Всі',
-      gender: 'Стать',
-      language: 'Мова спілкування',
-      bio: 'Про себе (необов\'язково)',
-      lookingGender: 'Шукаю',
-      lookingCity: 'Місто (необов\'язково)',
-      ageFrom: 'Вік від',
-      ageTo: 'до',
+      aboutMe: 'ПРО СЕБЕ', lookingFor: 'КОГО ШУКАЮ',
+      male: 'Хлопець', female: 'Дівчина', any: 'Всі',
+      gender: 'Стать', language: 'Мова спілкування',
+      bio: "Про себе (необов'язково)", lookingGender: 'Шукаю',
+      lookingCity: 'Місто (необов\'язково)', ageFrom: 'Вік від', ageTo: 'до',
     },
     by: {
-      aboutMe: 'ПРА СЯБЕ',
-      lookingFor: 'КАГО ШУКАЮ',
-      male: 'Хлопец',
-      female: 'Дзяўчына',
-      any: 'Усе',
-      gender: 'Пол',
-      language: 'Мова зносін',
-      bio: 'Пра сябе (неабавязкова)',
-      lookingGender: 'Шукаю',
-      lookingCity: 'Горад (неабавязкова)',
-      ageFrom: 'Узрост ад',
-      ageTo: 'да',
+      aboutMe: 'ПРА СЯБЕ', lookingFor: 'КАГО ШУКАЮ',
+      male: 'Хлопец', female: 'Дзяўчына', any: 'Усе',
+      gender: 'Пол', language: 'Мова зносін',
+      bio: 'Пра сябе (неабавязкова)', lookingGender: 'Шукаю',
+      lookingCity: 'Горад (неабавязкова)', ageFrom: 'Узрост ад', ageTo: 'да',
     },
     pl: {
-      aboutMe: 'O SOBIE',
-      lookingFor: 'KOGO SZUKAM',
-      male: 'Chłopak',
-      female: 'Dziewczyna',
-      any: 'Wszyscy',
-      gender: 'Płeć',
-      language: 'Język',
-      bio: 'O sobie (opcjonalnie)',
-      lookingGender: 'Szukam',
-      lookingCity: 'Miasto (opcjonalnie)',
-      ageFrom: 'Wiek od',
-      ageTo: 'do',
+      aboutMe: 'O SOBIE', lookingFor: 'KOGO SZUKAM',
+      male: 'Chłopak', female: 'Dziewczyna', any: 'Wszyscy',
+      gender: 'Płeć', language: 'Język',
+      bio: 'O sobie (opcjonalnie)', lookingGender: 'Szukam',
+      lookingCity: 'Miasto (opcjonalnie)', ageFrom: 'Wiek od', ageTo: 'do',
     },
     en: {
-      aboutMe: 'ABOUT ME',
-      lookingFor: 'LOOKING FOR',
-      male: 'Male',
-      female: 'Female',
-      any: 'Anyone',
-      gender: 'Gender',
-      language: 'Language',
-      bio: 'About me (optional)',
-      lookingGender: 'Looking for',
-      lookingCity: 'City (optional)',
-      ageFrom: 'Age from',
-      ageTo: 'to',
+      aboutMe: 'ABOUT ME', lookingFor: 'LOOKING FOR',
+      male: 'Male', female: 'Female', any: 'Anyone',
+      gender: 'Gender', language: 'Language',
+      bio: 'About me (optional)', lookingGender: 'Looking for',
+      lookingCity: 'City (optional)', ageFrom: 'Age from', ageTo: 'to',
     },
   }[lang];
 
-  return (
-    <div style={{ minHeight: '100dvh', background: g.bg, position: 'relative', overflowX: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
-      <Particles />
-      <div style={{ position: 'fixed', borderRadius: '50%', filter: 'blur(70px)', pointerEvents: 'none', zIndex: 0, width: 320, height: 320, top: -90, right: -90, background: 'rgba(86,171,145,0.07)' }} />
+  const inputStyle = {
+    width: '100%',
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: 14,
+    padding: '13px 16px',
+    fontSize: 14,
+    color: '#fff',
+    fontFamily: 'Inter, sans-serif',
+    boxSizing: 'border-box' as const,
+  };
 
-      {/* Lang */}
-      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 50, padding: 3, gap: 2, border: `1px solid ${theme.colors.glassBorder}`, zIndex: 2 }}>
+  return (
+    <div style={{
+      minHeight: '100dvh',
+      background: '#0d0618',
+      position: 'relative',
+      overflowX: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 24px',
+    }}>
+      {/* Gradient background */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        background: `
+          radial-gradient(ellipse 80% 60% at 20% 10%, rgba(255,69,120,0.18) 0%, transparent 60%),
+          radial-gradient(ellipse 60% 50% at 80% 30%, rgba(168,85,247,0.2) 0%, transparent 55%),
+          radial-gradient(ellipse 70% 50% at 50% 80%, rgba(65,88,208,0.15) 0%, transparent 60%),
+          linear-gradient(170deg, #0d0618 0%, #1a0a2e 50%, #0d0618 100%)
+        `,
+      }} />
+      {/* Orbs */}
+      <div style={{ position: 'fixed', width: 280, height: 280, top: -60, left: -80, borderRadius: '50%', background: 'rgba(255,69,120,0.22)', filter: 'blur(60px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', width: 240, height: 240, top: 100, right: -70, borderRadius: '50%', background: 'rgba(168,85,247,0.2)', filter: 'blur(60px)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', width: 300, height: 300, bottom: -80, left: 20, borderRadius: '50%', background: 'rgba(65,88,208,0.18)', filter: 'blur(60px)', pointerEvents: 'none', zIndex: 0 }} />
+
+      {/* Lang switcher */}
+      <div style={{ position: 'fixed', top: 16, right: 16, display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 50, padding: 3, gap: 2, border: '1px solid rgba(255,255,255,0.1)', zIndex: 10 }}>
         {(['ua', 'by', 'pl', 'en'] as const).map((code) => (
-          <button key={code} onClick={() => setLang(code)} style={{ background: lang === code ? 'rgba(86,171,145,0.35)' : 'transparent', border: 'none', borderRadius: 50, width: 38, height: 38, fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', color: lang === code ? '#56ab91' : 'rgba(255,255,255,0.7)', letterSpacing: '0.5px' }}>
+          <button key={code} onClick={() => setLang(code)} style={{
+            background: lang === code ? 'linear-gradient(135deg,#FF4578,#C850C0)' : 'transparent',
+            border: 'none', borderRadius: 50, width: 38, height: 38, fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.2s', color: lang === code ? '#fff' : 'rgba(255,255,255,0.5)',
+            letterSpacing: '0.5px',
+          }}>
             {code === 'ua' ? 'UA' : code === 'by' ? 'BY' : code === 'pl' ? 'PL' : 'EN'}
           </button>
         ))}
@@ -256,24 +265,52 @@ export function AuthPage() {
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 380 }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 20px' }}>
-            <div style={{ position: 'absolute', inset: 0, border: '1.5px solid rgba(86,171,145,0.25)', borderRadius: '50%', animation: 'orbit 6s linear infinite' }} />
-            <div style={{ position: 'absolute', inset: 8, border: '1px solid rgba(168,230,207,0.15)', borderRadius: '50%', animation: 'orbit 10s linear infinite reverse' }} />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 24, height: 24, borderRadius: '50%', background: g.greenBtn, boxShadow: '0 0 20px rgba(86,171,145,0.6)' }} />
-            <div style={{ position: 'absolute', top: 0, left: '50%', width: 8, height: 8, borderRadius: '50%', background: theme.colors.yellow, boxShadow: '0 0 8px rgba(249,217,118,0.8)', marginLeft: -4, marginTop: -4, transformOrigin: '4px 44px', animation: 'orbit 6s linear infinite' }} />
-          </div>
-          <h1 style={{ fontFamily: theme.fonts.serif, fontSize: 42, fontWeight: 600, background: g.text, backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', animation: 'shimmer 4s linear infinite' }}>Huugs</h1>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: 52, fontWeight: 600, lineHeight: 1,
+            background: 'linear-gradient(135deg,#FF8FB1 0%,#FF4578 35%,#C850C0 65%,#a78bfa 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            letterSpacing: '-1px',
+            animation: 'float 3s ease-in-out infinite',
+          }}>Huugs</div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', marginTop: 6 }}>Find your person</div>
         </div>
 
         {/* Card */}
-        <div style={{ background: 'linear-gradient(145deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))', border: `1px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.xl, padding: '32px 24px', backdropFilter: 'blur(20px)', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+        <div style={{
+          background: 'rgba(255,255,255,0.06)',
+          backdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 28,
+          padding: '28px 24px',
+          boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, fontWeight: 600, color: '#fff', marginBottom: 4 }}>
+            {isLogin ? 'З поверненням ✨' : 'Реєстрація 🌸'}
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 22 }}>
+            {isLogin ? 'Увійди, щоб продовжити' : 'Створи свій акаунт'}
+          </div>
+
           {/* Tabs */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, background: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 4, marginBottom: 24 }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 22, background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 4 }}>
             {(['login', 'register'] as const).map((m) => (
-              <button key={m} onClick={() => setMode(m)} style={{ background: mode === m ? g.greenBtn : 'transparent', border: 'none', borderRadius: 11, padding: '10px', color: mode === m ? '#fff' : theme.colors.textMuted, fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                style={{
+                  flex: 1, padding: '8px', borderRadius: 10,
+                  fontSize: 13, fontWeight: 600, textAlign: 'center',
+                  cursor: 'pointer', transition: 'all 0.2s', border: 'none',
+                  background: mode === m ? 'linear-gradient(135deg,#FF4578,#C850C0)' : 'transparent',
+                  color: mode === m ? '#fff' : 'rgba(255,255,255,0.4)',
+                  boxShadow: mode === m ? '0 4px 12px rgba(255,69,120,0.3)' : 'none',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+              >
                 {m === 'login'
-                  ? { ua: 'Вхід', by: 'Уваход', pl: 'Logowanie', en: 'Log in' }[lang]
+                  ? { ua: 'Увійти', by: 'Уваход', pl: 'Logowanie', en: 'Log in' }[lang]
                   : { ua: 'Реєстрація', by: 'Рэгістрацыя', pl: 'Rejestracja', en: 'Sign up' }[lang]}
               </button>
             ))}
@@ -281,17 +318,46 @@ export function AuthPage() {
 
           {isLogin ? (
             <form onSubmit={loginForm.handleSubmit((d) => loginMutation.mutate(d))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <Input label="Email" type="email" placeholder="you@example.com" error={loginForm.formState.errors.email?.message} {...loginForm.register('email')} />
-              <Input label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]} type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
-              {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: '#ff6b8a', textAlign: 'center', background: 'rgba(255,107,138,0.1)', border: '1px solid rgba(255,107,138,0.3)', borderRadius: 10, padding: '10px 14px' }}>{error}</div>}
-              <Button type="submit" fullWidth loading={loginMutation.isPending} style={{ marginTop: 8 }}>
-                {{ ua: 'Увійти', by: 'Увайсці', pl: 'Zaloguj się', en: 'Log in' }[lang]}
+              <Input label="Email" type="email" placeholder="email@example.com" error={loginForm.formState.errors.email?.message} {...loginForm.register('email')} />
+              <Input
+                label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]}
+                type="password" placeholder="••••••••"
+                error={loginForm.formState.errors.password?.message}
+                {...loginForm.register('password')}
+              />
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,69,120,0.8)', cursor: 'pointer' }}>Забув пароль?</span>
+              </div>
+              {error && (
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF8FB1', textAlign: 'center', background: 'rgba(255,69,120,0.1)', border: '1px solid rgba(255,69,120,0.3)', borderRadius: 10, padding: '10px 14px' }}>{error}</div>
+              )}
+              <Button type="submit" fullWidth loading={loginMutation.isPending} style={{ marginTop: 4 }}>
+                {{ ua: 'Увійти →', by: 'Увайсці →', pl: 'Zaloguj się →', en: 'Log in →' }[lang]}
               </Button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, color: 'rgba(255,255,255,0.25)' }}>
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+                або
+                <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setMode('register')}
+                style={{
+                  width: '100%', padding: 13,
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: 16,
+                  fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.7)',
+                  cursor: 'pointer', transition: 'all 0.2s',
+                  fontFamily: 'Inter, sans-serif',
+                }}
+              >
+                Створити акаунт
+              </button>
             </form>
           ) : (
             <form onSubmit={registerForm.handleSubmit((d) => registerMutation.mutate(d))} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-              {/* ── ПРО СЕБЕ ── */}
               <SectionLabel>{labels.aboutMe}</SectionLabel>
 
               {/* Photo upload */}
@@ -300,7 +366,7 @@ export function AuthPage() {
                   onClick={() => fileInputRef.current?.click()}
                   style={{
                     width: 90, height: 90, borderRadius: '50%', cursor: 'pointer',
-                    border: `2px dashed ${photoPreview ? 'rgba(86,171,145,0.6)' : theme.colors.glassBorder}`,
+                    border: `2px dashed ${photoPreview ? 'rgba(255,69,120,0.6)' : 'rgba(255,255,255,0.15)'}`,
                     background: photoPreview ? 'transparent' : 'rgba(255,255,255,0.04)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     overflow: 'hidden', position: 'relative', transition: 'border-color 0.2s',
@@ -310,185 +376,98 @@ export function AuthPage() {
                     ? <img src={photoPreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: 22, marginBottom: 2 }}>📷</div>
-                        <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint }}>Фото</div>
+                        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>Фото</div>
                       </div>
                   }
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={handlePhotoChange}
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoChange} />
               </div>
 
-              <Input
-                label={{ ua: "Ім'я", by: 'Імя', pl: 'Imię', en: 'Name' }[lang]}
-                placeholder="Олег"
-                error={registerForm.formState.errors.name?.message}
-                {...registerForm.register('name')}
-              />
-              <Input
-                label="Email" type="email" placeholder="you@example.com"
-                error={registerForm.formState.errors.email?.message}
-                {...registerForm.register('email')}
-              />
-              <Input
-                label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]}
-                type="password" placeholder="мін. 8 символів"
-                error={registerForm.formState.errors.password?.message}
-                {...registerForm.register('password')}
-              />
-              <Input
-                label={{ ua: 'Дата народження', by: 'Дата нараджэння', pl: 'Data urodzenia', en: 'Date of birth' }[lang]}
-                type="date"
-                error={registerForm.formState.errors.birth?.message}
-                {...registerForm.register('birth')}
-              />
-              <Input
-                label={{ ua: 'Місто', by: 'Горад', pl: 'Miasto', en: 'City' }[lang]}
-                placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]}
-                error={registerForm.formState.errors.city?.message}
-                {...registerForm.register('city')}
-              />
+              <Input label={{ ua: "Ім'я", by: 'Імя', pl: 'Imię', en: 'Name' }[lang]} placeholder="Олег" error={registerForm.formState.errors.name?.message} {...registerForm.register('name')} />
+              <Input label="Email" type="email" placeholder="email@example.com" error={registerForm.formState.errors.email?.message} {...registerForm.register('email')} />
+              <Input label={{ ua: 'Пароль', by: 'Пароль', pl: 'Hasło', en: 'Password' }[lang]} type="password" placeholder="мін. 8 символів" error={registerForm.formState.errors.password?.message} {...registerForm.register('password')} />
+              <Input label={{ ua: 'Дата народження', by: 'Дата нараджэння', pl: 'Data urodzenia', en: 'Date of birth' }[lang]} type="date" error={registerForm.formState.errors.birth?.message} {...registerForm.register('birth')} />
+              <Input label={{ ua: 'Місто', by: 'Горад', pl: 'Miasto', en: 'City' }[lang]} placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]} error={registerForm.formState.errors.city?.message} {...registerForm.register('city')} />
 
-              {/* Стать */}
               <div>
                 <FieldLabel>{labels.gender}</FieldLabel>
                 <ToggleGroup
                   value={genderVal}
                   onChange={(v) => registerForm.setValue('gender', v as 'male' | 'female')}
-                  options={[
-                    { label: labels.male, value: 'male' },
-                    { label: labels.female, value: 'female' },
-                  ]}
+                  options={[{ label: labels.male, value: 'male' }, { label: labels.female, value: 'female' }]}
                 />
                 {registerForm.formState.errors.gender && (
-                  <div style={{ fontSize: 11, color: '#ff6b8a', marginTop: 4 }}>{registerForm.formState.errors.gender.message}</div>
+                  <div style={{ fontSize: 11, color: '#FF8FB1', marginTop: 4 }}>{registerForm.formState.errors.gender.message}</div>
                 )}
               </div>
 
-              {/* Мова */}
               <div>
                 <FieldLabel>{labels.language}</FieldLabel>
-                <select
-                  {...registerForm.register('language')}
-                  style={{
-                    width: '100%', padding: '12px 16px',
-                    background: theme.colors.glass,
-                    border: `1.5px solid ${theme.colors.glassBorder}`,
-                    borderRadius: theme.radius.md,
-                    fontFamily: theme.fonts.sans, fontSize: 15,
-                    color: theme.colors.text, cursor: 'pointer',
-                  }}
-                >
-                  {LANGUAGES.map((l) => <option key={l} value={l} style={{ background: '#0d1f17' }}>{l}</option>)}
+                <select {...registerForm.register('language')} style={{ ...inputStyle, cursor: 'pointer' }}>
+                  {LANGUAGES.map((l) => <option key={l} value={l} style={{ background: '#0d0618' }}>{l}</option>)}
                 </select>
               </div>
 
-              {/* Опис */}
               <div>
                 <FieldLabel>{labels.bio}</FieldLabel>
                 <textarea
                   rows={3}
                   placeholder={{ ua: 'Розкажи про себе…', by: 'Раскажы пра сябе…', pl: 'Opowiedz o sobie…', en: 'Tell about yourself…' }[lang]}
                   {...registerForm.register('bio')}
-                  style={{
-                    display: 'block', width: '100%', padding: '12px 16px',
-                    background: theme.colors.glass,
-                    border: `1.5px solid ${theme.colors.glassBorder}`,
-                    borderRadius: theme.radius.md,
-                    fontSize: 15, fontFamily: theme.fonts.sans,
-                    color: theme.colors.text, resize: 'none', lineHeight: 1.6,
-                    boxSizing: 'border-box',
-                  }}
+                  style={{ ...inputStyle, resize: 'none', lineHeight: 1.6 }}
                 />
               </div>
 
-              {/* ── КОГО ШУКАЮ ── */}
-              <div style={{ height: 1, background: theme.colors.glassBorder, margin: '6px 0' }} />
+              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px 0' }} />
               <SectionLabel>{labels.lookingFor}</SectionLabel>
 
-              {/* Стать кого шукаю */}
               <div>
                 <FieldLabel>{labels.lookingGender}</FieldLabel>
                 <ToggleGroup
                   value={lookingForGenderVal}
                   onChange={(v) => registerForm.setValue('lookingForGender', v as 'male' | 'female' | 'any')}
-                  options={[
-                    { label: labels.male, value: 'male' },
-                    { label: labels.female, value: 'female' },
-                    { label: labels.any, value: 'any' },
-                  ]}
+                  options={[{ label: labels.male, value: 'male' }, { label: labels.female, value: 'female' }, { label: labels.any, value: 'any' }]}
                 />
               </div>
 
-              {/* Місто кого шукаю */}
-              <Input
-                label={labels.lookingCity}
-                placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]}
-                error={registerForm.formState.errors.lookingForCity?.message}
-                {...registerForm.register('lookingForCity')}
-              />
+              <Input label={labels.lookingCity} placeholder={{ ua: 'Київ', by: 'Мінск', pl: 'Warszawa', en: 'London' }[lang]} error={registerForm.formState.errors.lookingForCity?.message} {...registerForm.register('lookingForCity')} />
 
-              {/* Вік */}
               <div>
                 <FieldLabel>{{ ua: 'Вік', by: 'Узрост', pl: 'Wiek', en: 'Age range' }[lang]}</FieldLabel>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="number" min={18} max={100} placeholder="18"
-                    {...registerForm.register('lookingForAgeMin')}
-                    style={{
-                      flex: 1, padding: '12px 16px',
-                      background: theme.colors.glass,
-                      border: `1.5px solid ${theme.colors.glassBorder}`,
-                      borderRadius: theme.radius.md,
-                      fontFamily: theme.fonts.sans, fontSize: 15,
-                      color: theme.colors.text,
-                    }}
-                  />
-                  <span style={{ color: theme.colors.textMuted, fontFamily: theme.fonts.sans, fontSize: 13 }}>—</span>
-                  <input
-                    type="number" min={18} max={100} placeholder="99"
-                    {...registerForm.register('lookingForAgeMax')}
-                    style={{
-                      flex: 1, padding: '12px 16px',
-                      background: theme.colors.glass,
-                      border: `1.5px solid ${theme.colors.glassBorder}`,
-                      borderRadius: theme.radius.md,
-                      fontFamily: theme.fonts.sans, fontSize: 15,
-                      color: theme.colors.text,
-                    }}
-                  />
+                  <input type="number" min={18} max={100} placeholder="18" {...registerForm.register('lookingForAgeMin')} style={{ flex: 1, ...inputStyle }} />
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter, sans-serif', fontSize: 13 }}>—</span>
+                  <input type="number" min={18} max={100} placeholder="99" {...registerForm.register('lookingForAgeMax')} style={{ flex: 1, ...inputStyle }} />
                 </div>
               </div>
 
-              {error && <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: '#ff6b8a', textAlign: 'center', background: 'rgba(255,107,138,0.1)', border: '1px solid rgba(255,107,138,0.3)', borderRadius: 10, padding: '10px 14px' }}>{error}</div>}
+              {error && (
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: '#FF8FB1', textAlign: 'center', background: 'rgba(255,69,120,0.1)', border: '1px solid rgba(255,69,120,0.3)', borderRadius: 10, padding: '10px 14px' }}>{error}</div>
+              )}
 
               <Button type="submit" fullWidth loading={registerMutation.isPending} style={{ marginTop: 8 }}>
-                {{ ua: 'Зареєструватись', by: 'Зарэгіструвацца', pl: 'Zarejestruj się', en: 'Sign up' }[lang]}
+                {{ ua: 'Зареєструватись →', by: 'Зарэгіструвацца →', pl: 'Zarejestruj się →', en: 'Sign up →' }[lang]}
               </Button>
             </form>
           )}
         </div>
       </div>
 
-      {/* Welcome popup after registration */}
+      {/* Welcome popup */}
       {showWelcome && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
-          <div style={{ background: 'linear-gradient(145deg,rgba(13,31,23,0.98),rgba(8,20,14,0.99))', border: '1px solid rgba(86,171,145,0.3)', borderRadius: 24, padding: '32px 28px', maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🌿</div>
-            <div style={{ fontFamily: theme.fonts.serif, fontSize: 24, color: theme.colors.text, marginBottom: 18 }}>Ласкаво просимо!</div>
-            <div style={{ fontFamily: theme.fonts.sans, fontSize: 14, color: 'rgba(168,230,207,0.75)', lineHeight: 1.75, marginBottom: 28, textAlign: 'left', background: 'rgba(86,171,145,0.06)', border: '1px solid rgba(86,171,145,0.15)', borderRadius: 14, padding: '16px 18px' }}>
+          <div style={{ background: 'rgba(13,6,24,0.98)', border: '1px solid rgba(255,69,120,0.3)', borderRadius: 28, padding: '32px 28px', maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 26, color: '#fff', marginBottom: 18 }}>Ласкаво просимо!</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.75, marginBottom: 28, textAlign: 'left', background: 'rgba(255,69,120,0.06)', border: '1px solid rgba(255,69,120,0.15)', borderRadius: 14, padding: '16px 18px' }}>
               Цей сайт був створений недавно, тому можливо учасників є не сильно багато. Буду вдячний за розуміння 🙏<br /><br />
-              Кожному новому учаснику дається <strong style={{ color: '#f9d976' }}>⭐ Premium підписка на 1 місяць</strong> — з повагою, <strong style={{ color: theme.colors.green.light }}>Адмін</strong>
+              Кожному новому учаснику дається <strong style={{ color: '#FFD166' }}>⭐ Premium підписка на 1 місяць</strong> — з повагою, <strong style={{ color: '#FF8FB1' }}>Адмін</strong>
             </div>
             <button
               onClick={() => { setShowWelcome(false); navigate('/search'); }}
-              style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'linear-gradient(135deg,#56ab91,#3d8b6a)', border: 'none', color: '#fff', fontFamily: theme.fonts.sans, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 20px rgba(86,171,145,0.4)' }}
+              style={{ width: '100%', padding: 14, borderRadius: 16, background: 'linear-gradient(135deg,#FF4578 0%,#C850C0 50%,#4158D0 100%)', border: 'none', color: '#fff', fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 24px rgba(255,69,120,0.35)' }}
             >
-              Дякую, розпочати! 💚
+              Дякую, розпочати! 💫
             </button>
           </div>
         </div>
