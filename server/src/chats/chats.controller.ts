@@ -1,5 +1,11 @@
 import { Controller, Get, Patch, Post, Param, Query, Body, UseGuards, ForbiddenException } from '@nestjs/common';
 import { IsString, MaxLength } from 'class-validator';
+
+class SendMessageDto {
+  @IsString()
+  @MaxLength(5000)
+  text: string;
+}
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
@@ -56,10 +62,11 @@ export class ChatsController {
   async sendMessage(
     @CurrentUser() me: User,
     @Param('conversationId') conversationId: string,
-    @Body('text') text: string,
+    @Body() dto: SendMessageDto,
   ) {
-    if (!text?.trim()) return;
-    const message = await this.chatsService.saveMessage(conversationId, me.id, text.trim());
+    const text = dto.text?.trim();
+    if (!text) return;
+    const message = await this.chatsService.saveMessage(conversationId, me.id, text);
     // Notify other participants via WebSocket in real-time
     this.chatsGateway.server?.to(`conv:${conversationId}`).emit('message', {
       id: message.id,
