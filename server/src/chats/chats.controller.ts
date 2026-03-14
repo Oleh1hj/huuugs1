@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Param, Query, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Param, Query, Body, UseGuards, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
@@ -48,6 +48,28 @@ export class ChatsController {
       limit ?? 50,
       before ? new Date(before) : undefined,
     );
+  }
+
+  /** Send a message via HTTP (reliable fallback when WebSocket is unavailable) */
+  @Post(':conversationId/messages')
+  async sendMessage(
+    @CurrentUser() me: User,
+    @Param('conversationId') conversationId: string,
+    @Body('text') text: string,
+  ) {
+    text = (text ?? '').trim();
+    if (!text) return;
+    const message = await this.chatsService.saveMessage(conversationId, me.id, text);
+    // Notify other participants via WebSocket in real-time
+    this.chatsGateway.server?.to(`conv:${conversationId}`).emit('message', {
+      id: message.id,
+      conversationId,
+      senderId: me.id,
+      text: message.text,
+      isRead: false,
+      createdAt: message.createdAt,
+    });
+    return message;
   }
 
   @Patch(':conversationId/read')

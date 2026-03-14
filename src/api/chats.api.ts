@@ -16,4 +16,10 @@ export const chatsApi = {
 
   openConversation: (userId: string) =>
     api.post<{ conversationId: string }>(`/chats/with/${userId}`).then((r) => r.data),
+
+  sendMessage: (conversationId: string, text: string) =>
+    api.post<{ id: string; conversationId: string; senderId: string; text: string; isRead: boolean; createdAt: string }>(
+      `/chats/${conversationId}/messages`,
+      { text },
+    ).then((r) => r.data),
 };

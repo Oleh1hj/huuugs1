@@ -36,7 +36,8 @@ export function ChatRoom() {
     queryKey: ['messages', conversationId],
     queryFn: () => chatsApi.getMessages(conversationId!),
     enabled: !!conversationId,
-    refetchInterval: false, // rely on WebSocket
+    refetchInterval: 3_000, // poll every 3s as real-time fallback
+    staleTime: 0,
   });
 
   // Join socket room + mark messages as read on open

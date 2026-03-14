@@ -221,6 +221,10 @@ export class UsersService {
     });
   }
 
+  async setAdminFlag(userId: string, value: boolean): Promise<void> {
+    await this.repo.update(userId, { isAdmin: value });
+  }
+
   // ── Admin: verify / set premium ───────────────────────────────────
 
   async setVerified(adminId: string, userId: string, value: boolean): Promise<void> {
