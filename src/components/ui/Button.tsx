@@ -21,8 +21,8 @@ const variants: Record<Variant, object> = {
   },
   ghost: {
     background: 'transparent',
-    color: theme.colors.green.mid,
-    border: `1.5px solid ${theme.colors.glassBorderActive}`,
+    color: '#FF8FB1',
+    border: '1.5px solid rgba(255,69,120,0.3)',
   },
   danger: {
     background: 'rgba(220,39,67,0.15)',
@@ -34,7 +34,7 @@ const variants: Record<Variant, object> = {
 const sizes: Record<Size, object> = {
   sm: { padding: '8px 18px', fontSize: 12, borderRadius: 50 },
   md: { padding: '12px 24px', fontSize: 14, borderRadius: theme.radius.md },
-  lg: { padding: '15px', fontSize: 15, borderRadius: theme.radius.md },
+  lg: { padding: '15px', fontSize: 15, borderRadius: 16 },
 };
 
 export function Button({ variant = 'primary', size = 'md', loading, children, fullWidth, style, disabled, ...rest }: Props) {
@@ -47,6 +47,7 @@ export function Button({ variant = 'primary', size = 'md', loading, children, fu
         opacity: disabled || loading ? 0.6 : 1,
         transition: 'all 0.2s',
         width: fullWidth ? '100%' : undefined,
+        letterSpacing: '0.3px',
         ...variants[variant],
         ...sizes[size],
         ...style,
