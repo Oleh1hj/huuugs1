@@ -46,9 +46,18 @@ export function UserProfilePage() {
     refetchInterval: 30_000,
   });
 
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: chatsApi.getConversations,
+  });
+
   const isLiked = likedIds.includes(userId ?? '');
   const isOnline = onlineIds.includes(userId ?? '');
   const isBlocked = blockedIds.includes(userId ?? '');
+  const existingConv = conversations.find((c) =>
+    (c.userAId === me?.id && c.userBId === userId) ||
+    (c.userBId === me?.id && c.userAId === userId),
+  );
 
   const superLikeMutation = useMutation({
     mutationFn: () => likesApi.superLike(userId!),
@@ -193,6 +202,16 @@ export function UserProfilePage() {
             </div>
           )}
 
+          {/* Write button (if mutual match exists) */}
+          {existingConv && (
+            <button
+              onClick={() => navigate(`/chats/${existingConv.id}`)}
+              style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'rgba(86,171,145,0.2)', border: `1.5px solid rgba(86,171,145,0.5)`, color: theme.colors.green.light, fontFamily: theme.fonts.sans, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            >
+              💬 Написати
+            </button>
+          )}
+
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <Button
@@ -226,6 +245,17 @@ export function UserProfilePage() {
             >
               {superLikeSent ? '⭐ Відправлено' : `⭐ ${me?.coins ?? 0}🪙`}
             </button>
+          </div>
+
+          {/* User ID (for group invites) */}
+          <div
+            onClick={() => { navigator.clipboard.writeText(profile.id); }}
+            title="Натисни, щоб скопіювати ID"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${theme.colors.glassBorder}`, borderRadius: 10, cursor: 'pointer' }}
+          >
+            <span style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, letterSpacing: 1.5, textTransform: 'uppercase' }}>ID</span>
+            <span style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: theme.colors.textMuted, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{profile.id}</span>
+            <span style={{ fontFamily: theme.fonts.sans, fontSize: 11, color: theme.colors.green.mid }}>📋</span>
           </div>
 
           {/* Block / Report */}

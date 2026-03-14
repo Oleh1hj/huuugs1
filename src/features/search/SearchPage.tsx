@@ -13,15 +13,17 @@ export function SearchPage() {
   const [genderFilter, setGenderFilter] = useState('any');
   const [ageMin, setAgeMin] = useState('');
   const [ageMax, setAgeMax] = useState('');
+  const [language, setLanguage] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
   const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ['profiles', genderFilter, city, ageMin, ageMax],
+    queryKey: ['profiles', genderFilter, city, ageMin, ageMax, language],
     queryFn: () => profilesApi.getAllFiltered({
       gender: genderFilter !== 'any' ? genderFilter : undefined,
       city: city.trim() || undefined,
       ageMin: ageMin ? Number(ageMin) : undefined,
       ageMax: ageMax ? Number(ageMax) : undefined,
+      language: language.trim() || undefined,
     }),
     staleTime: 5 * 60_000,
   });
@@ -45,7 +47,7 @@ export function SearchPage() {
 
   const onlineSet = new Set(onlineIds);
   const likedMeBackIds = new Set(receivedLikes.map((u) => u.id));
-  const hasActiveFilters = genderFilter !== 'any' || !!ageMin || !!ageMax;
+  const hasActiveFilters = genderFilter !== 'any' || !!ageMin || !!ageMax || !!language;
 
   return (
     <div className="fade-up">
@@ -108,6 +110,19 @@ export function SearchPage() {
               <span style={{ color: theme.colors.textMuted, fontSize: 13 }}>—</span>
               <input type="number" min={18} max={100} placeholder="до" value={ageMax} onChange={(e) => setAgeMax(e.target.value)} style={{ flex: 1, padding: '10px 12px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: 12, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text }} />
               {(ageMin || ageMax) && <button onClick={() => { setAgeMin(''); setAgeMax(''); }} style={{ background: 'none', border: 'none', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18 }}>✕</button>}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Мова</div>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="напр. українська"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                style={{ width: '100%', padding: '10px 36px 10px 12px', boxSizing: 'border-box', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: 12, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text }}
+              />
+              {language && <button onClick={() => setLanguage('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: theme.colors.green.mid, cursor: 'pointer', fontSize: 18 }}>✕</button>}
             </div>
           </div>
         </div>

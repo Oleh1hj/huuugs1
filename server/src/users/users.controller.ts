@@ -38,6 +38,7 @@ class ProfilesQueryDto {
   @IsOptional() @IsString() city?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) ageMin?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) ageMax?: number;
+  @IsOptional() @IsString() language?: string;
 }
 
 class ReportDto {
@@ -61,6 +62,7 @@ export class UsersController {
       city: query.city,
       ageMin: query.ageMin,
       ageMax: query.ageMax,
+      language: query.language,
     });
   }
 

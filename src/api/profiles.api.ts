@@ -4,7 +4,7 @@ import { User } from '@/types';
 export const profilesApi = {
   getAll: () => api.get<User[]>('/users/profiles').then((r) => r.data),
 
-  getAllFiltered: (params: { gender?: string; city?: string; ageMin?: number; ageMax?: number }) =>
+  getAllFiltered: (params: { gender?: string; city?: string; ageMin?: number; ageMax?: number; language?: string }) =>
     api.get<User[]>('/users/profiles', { params }).then((r) => r.data),
 
   getById: (id: string) => api.get<User>(`/users/${id}`).then((r) => r.data),

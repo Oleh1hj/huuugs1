@@ -14,7 +14,7 @@ interface AuthSocket extends Socket {
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5173',
+    origin: true,
     credentials: true,
   },
   namespace: '/',
@@ -93,6 +93,7 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       conversationId: body.conversationId,
       senderId: socket.userId,
       text: message.text,
+      isRead: false,
       createdAt: message.createdAt,
     });
   }

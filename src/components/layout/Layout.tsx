@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
@@ -15,6 +15,7 @@ import { likesApi } from '@/api/likes.api';
 export function Layout() {
   const { user } = useAuthStore();
   const { lang, setLang } = useUiStore();
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const matchNotif = useUiStore((s) => s.matchNotif);
   const t = useUiTranslations();
   const navigate = useNavigate();
@@ -101,18 +102,23 @@ export function Layout() {
                 </button>
               )}
 
-              {/* Lang switcher */}
-              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 50, padding: 3, gap: 2, border: `1px solid ${theme.colors.glassBorder}` }}>
-                {(['ua', 'by', 'pl', 'en'] as const).map((code) => (
-                  <button key={code} onClick={() => setLang(code)} style={{
-                    background: lang === code ? 'rgba(86,171,145,0.35)' : 'transparent',
-                    border: 'none', borderRadius: 50, width: 34, height: 34,
-                    fontSize: 18, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: lang === code ? '0 0 12px rgba(86,171,145,0.3)' : 'none',
-                    transition: 'all 0.2s',
-                  }}>{code === 'ua' ? '🇺🇦' : code === 'by' ? '🇧🇾' : code === 'pl' ? '🇵🇱' : '🇬🇧'}</button>
-                ))}
+              {/* Lang switcher — compact single flag */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowLangMenu((s) => !s)}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${theme.colors.glassBorder}`, borderRadius: 50, width: 38, height: 38, fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: showLangMenu ? '0 0 12px rgba(86,171,145,0.3)' : 'none' }}
+                >
+                  {lang === 'ua' ? '🇺🇦' : lang === 'by' ? '🇧🇾' : lang === 'pl' ? '🇵🇱' : '🇬🇧'}
+                </button>
+                {showLangMenu && (
+                  <div style={{ position: 'absolute', top: 44, right: 0, background: 'rgba(13,31,23,0.98)', border: `1px solid ${theme.colors.glassBorder}`, borderRadius: 14, padding: 6, display: 'flex', flexDirection: 'column', gap: 2, zIndex: 100, backdropFilter: 'blur(12px)' }}>
+                    {(['ua', 'by', 'pl', 'en'] as const).map((code) => (
+                      <button key={code} onClick={() => { setLang(code); setShowLangMenu(false); }} style={{ background: lang === code ? 'rgba(86,171,145,0.25)' : 'transparent', border: 'none', borderRadius: 10, width: 38, height: 38, fontSize: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                        {code === 'ua' ? '🇺🇦' : code === 'by' ? '🇧🇾' : code === 'pl' ? '🇵🇱' : '🇬🇧'}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Avatar → profile */}

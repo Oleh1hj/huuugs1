@@ -13,6 +13,7 @@ export interface ProfileFilters {
   city?: string;
   ageMin?: number;
   ageMax?: number;
+  language?: string;
 }
 
 @Injectable()
@@ -95,6 +96,9 @@ export class UsersService {
       const minBirth = new Date();
       minBirth.setFullYear(minBirth.getFullYear() - filters.ageMax);
       qb.andWhere('u.birth >= :minBirth', { minBirth: minBirth.toISOString().split('T')[0] });
+    }
+    if (filters?.language) {
+      qb.andWhere('LOWER(u.language) LIKE :language', { language: `%${filters.language.toLowerCase()}%` });
     }
 
     return qb.getMany();
