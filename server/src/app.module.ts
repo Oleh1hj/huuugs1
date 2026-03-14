@@ -11,6 +11,7 @@ import { LikesModule } from './likes/likes.module';
 import { ChatsModule } from './chats/chats.module';
 import { SupportModule } from './support/support.module';
 import { SpinBottleModule } from './spin-bottle/spin-bottle.module';
+import { GroupsModule } from './groups/groups.module';
 
 const distPath = join(__dirname, '..', '..', 'dist');
 
@@ -50,6 +51,7 @@ const distPath = join(__dirname, '..', '..', 'dist');
     ChatsModule,
     SupportModule,
     SpinBottleModule,
+    GroupsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

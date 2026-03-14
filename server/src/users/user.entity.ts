@@ -58,6 +58,36 @@ export class User {
   @Column({ length: 20, default: 'anyone' })
   whoCanContact: string; // 'anyone' | 'liked_me' | 'mutual'
 
+  // ── Country ───────────────────────────────────────────────────────
+  @Column({ length: 100, nullable: true })
+  country: string;
+
+  // ── Contact filters: who can write to me ─────────────────────────
+  @Column({ length: 10, default: 'any' })
+  contactFilterGender: string; // 'any' | 'male' | 'female'
+
+  @Column({ type: 'int', nullable: true })
+  contactFilterAgeMin: number;
+
+  @Column({ type: 'int', nullable: true })
+  contactFilterAgeMax: number;
+
+  @Column({ default: false })
+  contactFilterSameCity: boolean;
+
+  @Column({ default: false })
+  contactFilterSameLanguage: boolean;
+
+  @Column({ default: false })
+  contactFilterSameCountry: boolean;
+
+  // ── Virtual coins (used for super-likes) ─────────────────────────
+  @Column({ type: 'int', default: 5 })
+  coins: number;
+
+  @Column({ type: 'date', nullable: true })
+  lastCoinBonusAt: string | null;
+
   @Column({ default: false })
   isAdmin: boolean;
 

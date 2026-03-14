@@ -91,9 +91,15 @@ export function ChatRoom() {
         >
           ←
         </button>
-        {partner && <Avatar photo={partner.photo} name={partner.name} size={42} />}
+        {partner && (
+          <button onClick={() => navigate(`/users/${partner.id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}>
+            <Avatar photo={partner.photo} name={partner.name} size={42} />
+          </button>
+        )}
         <div>
-          <div style={{ fontFamily: theme.fonts.serif, fontSize: 20, fontWeight: 500, color: theme.colors.text }}>{partner?.name}</div>
+          <button onClick={() => partner && navigate(`/users/${partner.id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+            <div style={{ fontFamily: theme.fonts.serif, fontSize: 20, fontWeight: 500, color: theme.colors.text }}>{partner?.name}</div>
+          </button>
           <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, color: theme.colors.textFaint }}>
             {typingVisible ? t.typing : t.mutualLikeHeader}
           </div>

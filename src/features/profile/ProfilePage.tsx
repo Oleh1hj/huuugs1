@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { profilesApi } from '@/api/profiles.api';
 import { Input } from '@/components/ui/Input';
@@ -81,10 +81,17 @@ function compressImage(file: File): Promise<string> {
 
 export function ProfilePage() {
   const { user, updateUser, logout } = useAuthStore();
+  const queryClient = useQueryClient();
   const t = useUiTranslations();
   const [editMode, setEditMode] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   const [whoCanContact, setWhoCanContact] = useState('anyone');
+  const [contactFilterGender, setContactFilterGender] = useState('any');
+  const [contactFilterAgeMin, setContactFilterAgeMin] = useState('');
+  const [contactFilterAgeMax, setContactFilterAgeMax] = useState('');
+  const [contactFilterSameCity, setContactFilterSameCity] = useState(false);
+  const [contactFilterSameLanguage, setContactFilterSameLanguage] = useState(false);
+  const [contactFilterSameCountry, setContactFilterSameCountry] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm({
@@ -92,6 +99,7 @@ export function ProfilePage() {
       name: user?.name ?? '',
       birth: user?.birth ?? '',
       city: user?.city ?? '',
+      country: user?.country ?? '',
       bio: user?.bio ?? '',
       gender: user?.gender ?? 'male',
       language: user?.language ?? 'Українська',
@@ -112,6 +120,7 @@ export function ProfilePage() {
         name: user.name ?? '',
         birth: user.birth ?? '',
         city: user.city ?? '',
+        country: user.country ?? '',
         bio: user.bio ?? '',
         gender: user.gender ?? 'male',
         language: user.language ?? 'Українська',
@@ -122,6 +131,12 @@ export function ProfilePage() {
       });
       setPhotos(user.photos ?? (user.photo ? [user.photo] : []));
       setWhoCanContact(user.whoCanContact ?? 'anyone');
+      setContactFilterGender(user.contactFilterGender ?? 'any');
+      setContactFilterAgeMin(user.contactFilterAgeMin != null ? String(user.contactFilterAgeMin) : '');
+      setContactFilterAgeMax(user.contactFilterAgeMax != null ? String(user.contactFilterAgeMax) : '');
+      setContactFilterSameCity(user.contactFilterSameCity ?? false);
+      setContactFilterSameLanguage(user.contactFilterSameLanguage ?? false);
+      setContactFilterSameCountry(user.contactFilterSameCountry ?? false);
     }
   }, [editMode]); // eslint-disable-line
 
@@ -138,6 +153,21 @@ export function ProfilePage() {
   };
 
   const [saveError, setSaveError] = useState<string>('');
+  const [bonusMsg, setBonusMsg] = useState<string>('');
+
+  const bonusMutation = useMutation({
+    mutationFn: profilesApi.claimDailyBonus,
+    onSuccess: (res) => {
+      if (res.alreadyClaimed) {
+        setBonusMsg('Бонус вже отримано сьогодні.');
+      } else {
+        updateUser({ coins: res.coins });
+        setBonusMsg(`+3 монети! Тепер у тебе ${res.coins} 🪙`);
+        queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+      }
+      setTimeout(() => setBonusMsg(''), 3000);
+    },
+  });
 
   const updateMutation = useMutation({
     mutationFn: profilesApi.updateMe,
@@ -191,8 +221,10 @@ export function ProfilePage() {
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
                 {user.gender && <Chip icon={user.gender === 'male' ? '♂' : '♀'} label={user.gender === 'male' ? t.genderMale : t.genderFemale} />}
                 <Chip icon="🌿" label={user.city} />
+                {user.country && <Chip icon="🌍" label={user.country} />}
                 <Chip icon="🎂" label={new Date(user.birth).toLocaleDateString('uk-UA')} />
                 {user.language && <Chip icon="💬" label={user.language} />}
+                <Chip icon="🪙" label={`${user.coins ?? 0} монет`} />
               </div>
               {(user.lookingForGender || user.lookingForCity || user.lookingForAgeMin) && (
                 <div style={{ marginBottom: 16 }}>
@@ -207,8 +239,30 @@ export function ProfilePage() {
               {/* Who can contact */}
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint, marginBottom: 8 }}>Хто може писати</div>
-                <Chip icon="🔒" label={{ anyone: 'Всі', liked_me: 'Хто мені вподобав', mutual: 'Лише взаємні' }[user.whoCanContact ?? 'anyone'] ?? 'Всі'} />
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Chip icon="🔒" label={{ anyone: 'Всі', liked_me: 'Хто мені вподобав', mutual: 'Лише взаємні' }[user.whoCanContact ?? 'anyone'] ?? 'Всі'} />
+                  {(user.contactFilterGender && user.contactFilterGender !== 'any') && <Chip icon={user.contactFilterGender === 'male' ? '♂' : '♀'} label={user.contactFilterGender === 'male' ? 'Лише хлопці' : 'Лише дівчата'} />}
+                  {user.contactFilterAgeMin && user.contactFilterAgeMax && <Chip icon="🎯" label={`${user.contactFilterAgeMin}–${user.contactFilterAgeMax} р.`} />}
+                  {user.contactFilterSameCity && <Chip icon="🏙" label="Лише моє місто" />}
+                  {user.contactFilterSameLanguage && <Chip icon="💬" label="Лише моя мова" />}
+                  {user.contactFilterSameCountry && <Chip icon="🌍" label="Лише моя країна" />}
+                </div>
               </div>
+              {/* Daily bonus */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
+                <button
+                  onClick={() => bonusMutation.mutate()}
+                  disabled={bonusMutation.isPending}
+                  style={{ flex: 1, padding: '12px 16px', borderRadius: theme.radius.md, background: 'rgba(249,217,118,0.08)', border: '1.5px solid rgba(249,217,118,0.3)', color: '#f9d976', fontFamily: theme.fonts.sans, fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  🎁 Щоденний бонус (+3 🪙)
+                </button>
+              </div>
+              {bonusMsg && (
+                <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: theme.colors.green.light, background: 'rgba(86,171,145,0.08)', border: '1px solid rgba(86,171,145,0.2)', borderRadius: theme.radius.md, padding: '10px 14px', textAlign: 'center' }}>
+                  {bonusMsg}
+                </div>
+              )}
               <Button fullWidth onClick={() => setEditMode(true)}>{t.editBtn}</Button>
               <Button fullWidth variant="ghost" onClick={logout} style={{ marginTop: 10 }}>{t.logout}</Button>
             </>
@@ -218,8 +272,14 @@ export function ProfilePage() {
                 ...d,
                 photos,
                 whoCanContact,
+                contactFilterGender,
+                contactFilterSameCity,
+                contactFilterSameLanguage,
+                contactFilterSameCountry,
                 lookingForAgeMin: d.lookingForAgeMin !== '' && d.lookingForAgeMin != null ? Number(d.lookingForAgeMin) : undefined,
                 lookingForAgeMax: d.lookingForAgeMax !== '' && d.lookingForAgeMax != null ? Number(d.lookingForAgeMax) : undefined,
+                contactFilterAgeMin: contactFilterAgeMin !== '' ? Number(contactFilterAgeMin) : undefined,
+                contactFilterAgeMax: contactFilterAgeMax !== '' ? Number(contactFilterAgeMax) : undefined,
               };
               setSaveError('');
               updateMutation.mutate(payload as any);
@@ -249,6 +309,7 @@ export function ProfilePage() {
               <Input label={t.fieldName} error={errors.name?.message} {...register('name', { required: true })} />
               <Input label={t.fieldBirth} type="date" error={errors.birth?.message} {...register('birth', { required: true })} />
               <Input label={t.fieldCity} error={errors.city?.message} {...register('city', { required: true })} />
+              <Input label="Країна (необов'язково)" {...register('country')} />
 
               <div>
                 <FieldLabel>{t.genderLabel}</FieldLabel>
@@ -308,6 +369,54 @@ export function ProfilePage() {
                   ]}
                 />
               </div>
+
+              {/* Contact filters */}
+              <div style={{ height: 1, background: theme.colors.glassBorder }} />
+              <FieldLabel>Фільтри — хто може мені писати</FieldLabel>
+
+              <div>
+                <FieldLabel>Стать</FieldLabel>
+                <ToggleGroup
+                  value={contactFilterGender}
+                  onChange={setContactFilterGender}
+                  options={[{ label: 'Будь-яка', value: 'any' }, { label: 'Хлопці', value: 'male' }, { label: 'Дівчата', value: 'female' }]}
+                />
+              </div>
+
+              <div>
+                <FieldLabel>Вік</FieldLabel>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input type="number" min={18} max={100} placeholder="від" value={contactFilterAgeMin} onChange={(e) => setContactFilterAgeMin(e.target.value)} style={{ flex: 1, padding: '12px 16px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.md, fontFamily: theme.fonts.sans, fontSize: 15, color: theme.colors.text }} />
+                  <span style={{ color: theme.colors.textMuted, fontSize: 13 }}>—</span>
+                  <input type="number" min={18} max={100} placeholder="до" value={contactFilterAgeMax} onChange={(e) => setContactFilterAgeMax(e.target.value)} style={{ flex: 1, padding: '12px 16px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.md, fontFamily: theme.fonts.sans, fontSize: 15, color: theme.colors.text }} />
+                </div>
+              </div>
+
+              {[
+                { label: '🏙 Лише з мого міста', value: contactFilterSameCity, setter: setContactFilterSameCity },
+                { label: '💬 Лише моя мова', value: contactFilterSameLanguage, setter: setContactFilterSameLanguage },
+                { label: '🌍 Лише моя країна', value: contactFilterSameCountry, setter: setContactFilterSameCountry },
+              ].map(({ label, value, setter }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setter(!value)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                    background: value ? 'rgba(86,171,145,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: `1.5px solid ${value ? 'rgba(86,171,145,0.5)' : theme.colors.glassBorder}`,
+                    borderRadius: theme.radius.md, padding: '12px 16px',
+                    color: value ? theme.colors.green.light : theme.colors.textMuted,
+                    fontFamily: theme.fonts.sans, fontSize: 14, cursor: 'pointer', textAlign: 'left',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <span style={{ width: 20, height: 20, borderRadius: 6, background: value ? theme.colors.green.mid : 'transparent', border: `2px solid ${value ? theme.colors.green.mid : theme.colors.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0, transition: 'all 0.2s' }}>
+                    {value ? '✓' : ''}
+                  </span>
+                  {label}
+                </button>
+              ))}
 
               {saveError && (
                 <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: '#f87171', background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: theme.radius.md, padding: '10px 14px' }}>

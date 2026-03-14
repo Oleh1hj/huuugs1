@@ -1,12 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from './user.entity';
 import { UsersService } from './users.service';
 import {
-  IsOptional, IsString, MaxLength, IsDateString, IsIn, IsInt, Min, Max, IsArray,
+  IsOptional, IsString, MaxLength, IsDateString, IsIn, IsInt, Min, Max, IsArray, IsBoolean,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 class UpdateProfileDto {
   @IsOptional() @IsString() @MaxLength(50) name?: string;
@@ -17,11 +17,19 @@ class UpdateProfileDto {
   @IsOptional() @IsArray() @IsString({ each: true }) photos?: string[];
   @IsOptional() @IsIn(['male', 'female']) gender?: string;
   @IsOptional() @IsString() @MaxLength(100) language?: string;
+  @IsOptional() @IsString() @MaxLength(100) country?: string;
   @IsOptional() @IsIn(['male', 'female', 'any']) lookingForGender?: string;
   @IsOptional() @IsString() @MaxLength(100) lookingForCity?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) lookingForAgeMin?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) lookingForAgeMax?: number;
   @IsOptional() @IsIn(['anyone', 'liked_me', 'mutual']) whoCanContact?: string;
+  // Contact filters
+  @IsOptional() @IsIn(['any', 'male', 'female']) contactFilterGender?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) contactFilterAgeMin?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) contactFilterAgeMax?: number;
+  @IsOptional() @Transform(({ value }) => value === true || value === 'true') @IsBoolean() contactFilterSameCity?: boolean;
+  @IsOptional() @Transform(({ value }) => value === true || value === 'true') @IsBoolean() contactFilterSameLanguage?: boolean;
+  @IsOptional() @Transform(({ value }) => value === true || value === 'true') @IsBoolean() contactFilterSameCountry?: boolean;
 }
 
 class ProfilesQueryDto {
@@ -54,5 +62,10 @@ export class UsersController {
   @Patch('me')
   updateMe(@CurrentUser() user: User, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(user.id, dto);
+  }
+
+  @Post('daily-bonus')
+  dailyBonus(@CurrentUser() user: User) {
+    return this.usersService.claimDailyBonus(user.id);
   }
 }

@@ -10,9 +10,14 @@ export const profilesApi = {
   getById: (id: string) => api.get<User>(`/users/${id}`).then((r) => r.data),
 
   updateMe: (data: Partial<Pick<User,
-    'name' | 'birth' | 'city' | 'bio' | 'photo' | 'photos' |
+    'name' | 'birth' | 'city' | 'country' | 'bio' | 'photo' | 'photos' |
     'gender' | 'language' | 'whoCanContact' |
+    'contactFilterGender' | 'contactFilterAgeMin' | 'contactFilterAgeMax' |
+    'contactFilterSameCity' | 'contactFilterSameLanguage' | 'contactFilterSameCountry' |
     'lookingForGender' | 'lookingForCity' | 'lookingForAgeMin' | 'lookingForAgeMax'
   >>) =>
     api.patch<User>('/users/me', data).then((r) => r.data),
+
+  claimDailyBonus: () =>
+    api.post<{ coins: number; alreadyClaimed: boolean }>('/users/daily-bonus').then((r) => r.data),
 };

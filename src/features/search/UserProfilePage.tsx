@@ -10,15 +10,17 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { calcAge } from '@/utils';
 import { theme, g } from '@/styles/theme';
-import { LikeResult } from '@/types';
+import { LikeResult, SuperLikeResult } from '@/types';
 
 export function UserProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const me = useAuthStore((s) => s.user);
+  const updateUser = useAuthStore((s) => s.updateUser);
   const showMatch = useUiStore((s) => s.showMatch);
   const queryClient = useQueryClient();
   const [photoIdx, setPhotoIdx] = useState(0);
+  const [superLikeSent, setSuperLikeSent] = useState(false);
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', userId],
@@ -39,6 +41,21 @@ export function UserProfilePage() {
 
   const isLiked = likedIds.includes(userId ?? '');
   const isOnline = onlineIds.includes(userId ?? '');
+
+  const superLikeMutation = useMutation({
+    mutationFn: () => likesApi.superLike(userId!),
+    onSuccess: (result: SuperLikeResult) => {
+      updateUser({ coins: result.coinsLeft });
+      setSuperLikeSent(true);
+      queryClient.setQueryData<string[]>(['likes', 'given'], (old = []) =>
+        old.includes(userId!) ? old : [...old, userId!],
+      );
+      if (result.match && result.conversationId && me && profile) {
+        showMatch({ partnerId: profile.id, partnerName: profile.name, partnerPhoto: profile.photo, conversationId: result.conversationId });
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }
+    },
+  });
 
   const likeMutation = useMutation({
     mutationFn: () => likesApi.toggle(userId!),
@@ -155,18 +172,20 @@ export function UserProfilePage() {
               {isLiked ? '❤️ Вподобано' : '🤍 Вподобати'}
             </Button>
 
-            {/* Super like — placeholder */}
+            {/* Super like */}
             <button
-              onClick={() => alert('Супер-лайк буде доступний незабаром!')}
+              onClick={() => { if ((me?.coins ?? 0) < 1) { alert('Нема монет! Монети нараховуються автоматично.'); return; } superLikeMutation.mutate(); }}
+              disabled={superLikeMutation.isPending || superLikeSent || (me?.coins ?? 0) < 1}
               style={{
-                padding: '0 18px', borderRadius: 12,
-                background: 'rgba(249,217,118,0.1)',
-                border: `1.5px solid rgba(249,217,118,0.35)`,
+                padding: '0 14px', borderRadius: 12,
+                background: superLikeSent ? 'rgba(249,217,118,0.25)' : 'rgba(249,217,118,0.1)',
+                border: `1.5px solid rgba(249,217,118,${superLikeSent ? '0.6' : '0.35'})`,
                 color: '#f9d976', fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 700,
-                cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                cursor: (me?.coins ?? 0) < 1 ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap', flexShrink: 0, opacity: superLikeMutation.isPending ? 0.6 : 1,
               }}
             >
-              ⭐ $1.10
+              {superLikeSent ? '⭐ Відправлено' : `⭐ ${me?.coins ?? 0}🪙`}
             </button>
           </div>
         </div>
