@@ -264,7 +264,6 @@ export function AuthPage() {
             <div style={{ position: 'absolute', top: 0, left: '50%', width: 8, height: 8, borderRadius: '50%', background: theme.colors.yellow, boxShadow: '0 0 8px rgba(249,217,118,0.8)', marginLeft: -4, marginTop: -4, transformOrigin: '4px 44px', animation: 'orbit 6s linear infinite' }} />
           </div>
           <h1 style={{ fontFamily: theme.fonts.serif, fontSize: 42, fontWeight: 600, background: g.text, backgroundSize: '200% auto', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', animation: 'shimmer 4s linear infinite' }}>Huugs</h1>
-          <p style={{ fontFamily: theme.fonts.sans, fontSize: 11, color: theme.colors.textFaint, letterSpacing: 2.5, textTransform: 'uppercase', marginTop: 6 }}>два атоми — одна орбіта</p>
         </div>
 
         {/* Card */}

@@ -76,9 +76,6 @@ export function Layout() {
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                 animation: 'shimmer 4s linear infinite',
               }}>Huugs</h1>
-              <p style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, letterSpacing: 2.5, textTransform: 'uppercase', marginTop: 3 }}>
-                {t.tagline}
-              </p>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
