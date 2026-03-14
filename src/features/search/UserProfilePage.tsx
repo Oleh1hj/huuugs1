@@ -46,9 +46,27 @@ export function UserProfilePage() {
     refetchInterval: 30_000,
   });
 
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: chatsApi.getConversations,
+  });
+
   const isLiked = likedIds.includes(userId ?? '');
   const isOnline = onlineIds.includes(userId ?? '');
   const isBlocked = blockedIds.includes(userId ?? '');
+  const existingConv = conversations.find((c) =>
+    (c.userAId === me?.id && c.userBId === userId) ||
+    (c.userBId === me?.id && c.userAId === userId),
+  );
+  const canDirectMessage = !!(existingConv) || !!(profile?.isAdmin) || !!(me?.isAdmin);
+
+  const openConvMutation = useMutation({
+    mutationFn: () => chatsApi.openConversation(userId!),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      navigate(`/chats/${data.conversationId}`);
+    },
+  });
 
   const superLikeMutation = useMutation({
     mutationFn: () => likesApi.superLike(userId!),
@@ -193,6 +211,17 @@ export function UserProfilePage() {
             </div>
           )}
 
+          {/* Write button */}
+          {canDirectMessage && (
+            <button
+              onClick={() => existingConv ? navigate(`/chats/${existingConv.id}`) : openConvMutation.mutate()}
+              disabled={openConvMutation.isPending}
+              style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'rgba(86,171,145,0.2)', border: `1.5px solid rgba(86,171,145,0.5)`, color: theme.colors.green.light, fontFamily: theme.fonts.sans, fontSize: 15, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: openConvMutation.isPending ? 0.6 : 1 }}
+            >
+              💬 Написати
+            </button>
+          )}
+
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <Button
@@ -227,6 +256,22 @@ export function UserProfilePage() {
               {superLikeSent ? '⭐ Відправлено' : `⭐ ${me?.coins ?? 0}🪙`}
             </button>
           </div>
+
+          {/* User ID (for group invites) — short 8-char code */}
+          {(() => {
+            const short = '#' + profile.id.replace(/-/g, '').slice(0, 4).toUpperCase() + '·' + profile.id.replace(/-/g, '').slice(4, 8).toUpperCase();
+            return (
+              <div
+                onClick={() => { navigator.clipboard.writeText(profile.id); }}
+                title="Натисни, щоб скопіювати повний ID для запрошення до групи"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${theme.colors.glassBorder}`, borderRadius: 10, cursor: 'pointer' }}
+              >
+                <span style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, letterSpacing: 1.5, textTransform: 'uppercase' }}>ID</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 13, color: theme.colors.textMuted, letterSpacing: 1, flex: 1 }}>{short}</span>
+                <span style={{ fontSize: 12, color: theme.colors.green.mid }}>📋</span>
+              </div>
+            );
+          })()}
 
           {/* Block / Report */}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>

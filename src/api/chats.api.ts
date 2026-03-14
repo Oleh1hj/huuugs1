@@ -13,4 +13,7 @@ export const chatsApi = {
 
   getOnlineUsers: () =>
     api.get<{ ids: string[] }>('/chats/online-users').then((r) => r.data.ids),
+
+  openConversation: (userId: string) =>
+    api.post<{ conversationId: string }>(`/chats/with/${userId}`).then((r) => r.data),
 };

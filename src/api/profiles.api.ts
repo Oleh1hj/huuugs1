@@ -4,7 +4,7 @@ import { User } from '@/types';
 export const profilesApi = {
   getAll: () => api.get<User[]>('/users/profiles').then((r) => r.data),
 
-  getAllFiltered: (params: { gender?: string; city?: string; ageMin?: number; ageMax?: number }) =>
+  getAllFiltered: (params: { gender?: string; city?: string; ageMin?: number; ageMax?: number; language?: string }) =>
     api.get<User[]>('/users/profiles', { params }).then((r) => r.data),
 
   getById: (id: string) => api.get<User>(`/users/${id}`).then((r) => r.data),
@@ -32,4 +32,12 @@ export const profilesApi = {
 
   getWhoViewedMe: () => api.get<User[]>('/users/who-viewed-me').then((r) => r.data),
   getViewCount: () => api.get<{ count: number }>('/users/view-count').then((r) => r.data),
+
+  // Admin
+  adminGetAll: () => api.get<User[]>('/users/admin/all').then((r) => r.data),
+  adminGetReports: () => api.get<any[]>('/users/admin/reports').then((r) => r.data),
+  adminGetStats: () => api.get<any>('/users/admin/stats').then((r) => r.data),
+  adminVerify: (userId: string, value: boolean) => api.post(`/users/${userId}/verify`, { value }),
+  adminPremium: (userId: string, value: boolean, days = 30) => api.post(`/users/${userId}/premium`, { value, days }),
+  adminBan: (userId: string, value: boolean) => api.post(`/users/${userId}/ban`, { value }),
 };

@@ -13,6 +13,7 @@ export interface ProfileFilters {
   city?: string;
   ageMin?: number;
   ageMax?: number;
+  language?: string;
 }
 
 @Injectable()
@@ -31,7 +32,8 @@ export class UsersService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const adminEmail = process.env.ADMIN_EMAIL;
     const isAdmin = !!(adminEmail && dto.email.toLowerCase() === adminEmail.toLowerCase());
-    const user = this.repo.create({ ...dto, passwordHash, isAdmin });
+    const premiumUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const user = this.repo.create({ ...dto, passwordHash, isAdmin, isPremium: true, premiumUntil });
     return this.repo.save(user);
   }
 
@@ -95,6 +97,9 @@ export class UsersService {
       const minBirth = new Date();
       minBirth.setFullYear(minBirth.getFullYear() - filters.ageMax);
       qb.andWhere('u.birth >= :minBirth', { minBirth: minBirth.toISOString().split('T')[0] });
+    }
+    if (filters?.language) {
+      qb.andWhere('LOWER(u.language) LIKE :language', { language: `%${filters.language.toLowerCase()}%` });
     }
 
     return qb.getMany();
@@ -229,5 +234,56 @@ export class UsersService {
     if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
     const until = value ? new Date(Date.now() + days * 86400_000).toISOString().split('T')[0] : null;
     await this.repo.update({ id: userId }, { isPremium: value, premiumUntil: until });
+  }
+
+  async adminBanUser(adminId: string, userId: string, ban: boolean): Promise<void> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+    await this.repo.update({ id: userId }, { isActive: !ban });
+  }
+
+  async adminGetAllUsers(adminId: string): Promise<User[]> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+    return this.repo.createQueryBuilder('u')
+      .select([
+        'u.id', 'u.name', 'u.email', 'u.birth', 'u.city', 'u.photo',
+        'u.gender', 'u.language', 'u.country',
+        'u.isVerified', 'u.isPremium', 'u.isAdmin', 'u.isActive',
+        'u.coins', 'u.createdAt',
+      ])
+      .orderBy('u.createdAt', 'DESC')
+      .take(500)
+      .getMany();
+  }
+
+  async adminGetReports(adminId: string): Promise<any[]> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+    const reports = await this.reportRepo.find({ order: { createdAt: 'DESC' }, take: 200 });
+    const userIds = [...new Set([...reports.map((r) => r.reporterId), ...reports.map((r) => r.reportedId)])];
+    if (!userIds.length) return [];
+    const users = await this.repo.findByIds(userIds);
+    const userMap = Object.fromEntries(users.map((u) => [u.id, u]));
+    return reports.map((r) => ({
+      ...r,
+      reporter: userMap[r.reporterId] ? { id: userMap[r.reporterId].id, name: userMap[r.reporterId].name } : null,
+      reported: userMap[r.reportedId] ? { id: userMap[r.reportedId].id, name: userMap[r.reportedId].name } : null,
+    }));
+  }
+
+  async adminGetStats(adminId: string): Promise<any> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+    const total = await this.repo.count();
+    const active = await this.repo.count({ where: { isActive: true } });
+    const premium = await this.repo.count({ where: { isPremium: true } });
+    const verified = await this.repo.count({ where: { isVerified: true } });
+    const today = new Date().toISOString().split('T')[0];
+    const newToday = await this.repo.createQueryBuilder('u')
+      .where('u.createdAt >= :today', { today })
+      .getCount();
+    const reports = await this.reportRepo.count();
+    return { total, active, premium, verified, newToday, reports };
   }
 }
