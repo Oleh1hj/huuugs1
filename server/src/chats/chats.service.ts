@@ -42,15 +42,22 @@ export class ChatsService {
       .where('c.userAId = :uid OR c.userBId = :uid', { uid: userId })
       .getMany();
 
-    // Attach last message to each conversation (for preview + sorting)
-    const withLastMsg = await Promise.all(
-      convs.map(async (conv) => {
-        const lastMessage = await this.msgRepo.findOne({
-          where: { conversationId: conv.id },
-          order: { createdAt: 'DESC' },
-        });
-        return Object.assign(conv, { lastMessage: lastMessage ?? null });
-      }),
+    if (convs.length === 0) return [];
+
+    // Single query for last message per conversation using DISTINCT ON (PostgreSQL)
+    // Replaces the previous N+1 pattern (one query per conversation)
+    const convIds = convs.map((c) => c.id);
+    const lastMessages: Message[] = await this.msgRepo.query(
+      `SELECT DISTINCT ON ("conversationId") * FROM messages
+       WHERE "conversationId" = ANY($1)
+       ORDER BY "conversationId", "createdAt" DESC`,
+      [convIds],
+    );
+
+    const lastMsgMap = new Map(lastMessages.map((m) => [m.conversationId, m]));
+
+    const withLastMsg = convs.map((conv) =>
+      Object.assign(conv, { lastMessage: lastMsgMap.get(conv.id) ?? null }),
     );
 
     // Sort newest conversation first

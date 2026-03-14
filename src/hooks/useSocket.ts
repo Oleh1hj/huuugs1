@@ -51,6 +51,9 @@ export function useSocket() {
     }) => {
       showMatch(payload);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      // Join the new conversation room immediately so real-time messages work
+      // before the user opens the chat (server only auto-joins rooms that existed on connect)
+      socket.emit('join', payload.conversationId);
     });
 
     return () => {

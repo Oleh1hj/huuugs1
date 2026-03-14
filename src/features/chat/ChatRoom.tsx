@@ -36,8 +36,7 @@ export function ChatRoom() {
     queryKey: ['messages', conversationId],
     queryFn: () => chatsApi.getMessages(conversationId!),
     enabled: !!conversationId,
-    refetchInterval: 1_500, // poll every 1.5s as real-time fallback
-    staleTime: 0,
+    staleTime: 30_000, // socket keeps cache up to date; only re-fetch on reconnect
   });
 
   // Join socket room + mark messages as read on open; re-join on reconnect
