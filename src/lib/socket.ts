@@ -3,9 +3,13 @@ import { useAuthStore } from '@/store/auth.store';
 
 let socket: Socket | null = null;
 
-// Derive WebSocket server URL from VITE_API_URL (strip /api/v1) or same origin
-const apiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
-const SOCKET_URL = apiUrl ? apiUrl.replace(/\/api\/v?\d+\/?$/, '') : '/';
+// Derive WebSocket server URL: strip path from VITE_API_URL so socket.io
+// connects to namespace '/' (not '/api/v1' which would cause "Invalid namespace")
+const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+let SOCKET_URL = '/';
+if (apiUrl) {
+  try { SOCKET_URL = new URL(apiUrl).origin; } catch { /* fall back to same origin */ }
+}
 
 export function getSocket(): Socket {
   if (!socket) {
@@ -15,7 +19,7 @@ export function getSocket(): Socket {
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       transports: ['websocket', 'polling'],
     });
   }

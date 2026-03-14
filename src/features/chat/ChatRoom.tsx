@@ -36,17 +36,20 @@ export function ChatRoom() {
     queryKey: ['messages', conversationId],
     queryFn: () => chatsApi.getMessages(conversationId!),
     enabled: !!conversationId,
-    refetchInterval: 3_000, // poll every 3s as real-time fallback
+    refetchInterval: 1_500, // poll every 1.5s as real-time fallback
     staleTime: 0,
   });
 
-  // Join socket room + mark messages as read on open
+  // Join socket room + mark messages as read on open; re-join on reconnect
   useEffect(() => {
     const socket = getSocket();
-    socket.emit('join', conversationId);
+    const joinRoom = () => socket.emit('join', conversationId);
+    joinRoom();
+    socket.on('connect', joinRoom);
     chatsApi.markAsRead(conversationId!).then(() => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     });
+    return () => { socket.off('connect', joinRoom); };
   }, [conversationId, queryClient]);
 
   // Show typing indicator from socket events
