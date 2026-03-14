@@ -3,14 +3,15 @@ import { useAuthStore } from '@/store/auth.store';
 
 let socket: Socket | null = null;
 
-// Derive WebSocket server URL from VITE_API_URL (strip /api/v1) or use current origin
+// Derive WebSocket server URL from VITE_API_URL (strip /api/v1) or same origin
 const apiUrl = (import.meta as any).env?.VITE_API_URL as string | undefined;
-const SOCKET_URL = apiUrl ? apiUrl.replace(/\/api\/v?\d+\/?$/, '') : '';
+const SOCKET_URL = apiUrl ? apiUrl.replace(/\/api\/v?\d+\/?$/, '') : '/';
 
 export function getSocket(): Socket {
   if (!socket) {
     socket = io(SOCKET_URL, {
-      auth: { token: useAuthStore.getState().accessToken },
+      // Use callback so every reconnection attempt uses the CURRENT (possibly refreshed) token
+      auth: (cb: (data: object) => void) => cb({ token: useAuthStore.getState().accessToken }),
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,
