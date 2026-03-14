@@ -158,18 +158,19 @@ export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
         }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Skip */}
+          {/* Profile info button */}
           <button style={{
             width: 52, height: 52, borderRadius: 18,
             background: 'rgba(255,255,255,0.06)',
             border: '1px solid rgba(255,255,255,0.1)',
             color: 'rgba(255,255,255,0.5)',
-            fontSize: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
+            fontSize: 18, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', fontFamily: 'Inter, sans-serif',
           }}
             onClick={() => navigate(`/users/${profile.id}`)}
-            title="Переглянути профіль"
-          >👁</button>
+            title="Детальніше"
+          >···</button>
 
           {/* Chat if mutual */}
           {likedMeBack && (
