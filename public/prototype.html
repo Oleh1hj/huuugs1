@@ -606,10 +606,10 @@
 
 <!-- Nav -->
 <div class="page-switcher">
-  <button class="psw-btn active" onclick="showScreen('auth')">🔐 Вхід</button>
-  <button class="psw-btn" onclick="showScreen('search')">🔍 Пошук</button>
-  <button class="psw-btn" onclick="showScreen('likes')">💘 Лайки</button>
-  <button class="psw-btn" onclick="showScreen('palette')">🎨 Палітра</button>
+  <button class="psw-btn active" onclick="showScreen('auth',this)">🔐 Вхід</button>
+  <button class="psw-btn" onclick="showScreen('search',this)">🔍 Пошук</button>
+  <button class="psw-btn" onclick="showScreen('likes',this)">💘 Лайки</button>
+  <button class="psw-btn" onclick="showScreen('palette',this)">🎨 Палітра</button>
 </div>
 
 <div class="screens">
@@ -942,14 +942,11 @@
 </div>
 
 <script>
-  function showScreen(name) {
-    // Hide all phones
+  function showScreen(name, btn) {
     document.querySelectorAll('.phone').forEach(p => p.classList.remove('visible'));
-    // Show target
     document.getElementById('phone-' + name).classList.add('visible');
-    // Update nav buttons
     document.querySelectorAll('.psw-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+    btn.classList.add('active');
   }
 </script>
 
