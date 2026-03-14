@@ -121,6 +121,21 @@ export class UsersController {
   }
 
   // Admin endpoints
+  @Get('admin/all')
+  adminGetAll(@CurrentUser() user: User) {
+    return this.usersService.adminGetAllUsers(user.id);
+  }
+
+  @Get('admin/reports')
+  adminGetReports(@CurrentUser() user: User) {
+    return this.usersService.adminGetReports(user.id);
+  }
+
+  @Get('admin/stats')
+  adminGetStats(@CurrentUser() user: User) {
+    return this.usersService.adminGetStats(user.id);
+  }
+
   @Post(':id/verify')
   @HttpCode(204)
   async setVerified(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
@@ -131,5 +146,11 @@ export class UsersController {
   @HttpCode(204)
   async setPremium(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
     await this.usersService.setPremium(user.id, id, dto.value ?? true, dto.days ?? 30);
+  }
+
+  @Post(':id/ban')
+  @HttpCode(204)
+  async banUser(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
+    await this.usersService.adminBanUser(user.id, id, dto.value ?? true);
   }
 }

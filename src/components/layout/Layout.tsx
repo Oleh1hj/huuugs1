@@ -81,6 +81,16 @@ export function Layout() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Admin button */}
+              {user?.isAdmin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', borderRadius: 50, padding: '6px 12px', fontFamily: theme.fonts.sans, fontSize: 12, fontWeight: 700, color: '#c084fc', cursor: 'pointer' }}
+                >
+                  ⚙️ Адмін
+                </button>
+              )}
+
               {/* Coins button */}
               {user && (
                 <button
