@@ -102,6 +102,7 @@ function FieldLabel({ children }: { children: string }) {
 
 export function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [showWelcome, setShowWelcome] = useState(false);
   const { setAuth } = useAuthStore();
   const { lang, setLang } = useUiStore();
   const navigate = useNavigate();
@@ -133,7 +134,7 @@ export function AuthPage() {
       lookingForAgeMin: data.lookingForAgeMin ? Number(data.lookingForAgeMin) : undefined,
       lookingForAgeMax: data.lookingForAgeMax ? Number(data.lookingForAgeMax) : undefined,
     }),
-    onSuccess: (data) => { sessionStorage.removeItem(DRAFT_KEY); setAuth(data.user, data.accessToken, data.refreshToken); navigate('/search'); },
+    onSuccess: (data) => { sessionStorage.removeItem(DRAFT_KEY); setAuth(data.user, data.accessToken, data.refreshToken); setShowWelcome(true); },
     onError: () => { /* error rendered below */ },
   });
 
@@ -473,6 +474,26 @@ export function AuthPage() {
           )}
         </div>
       </div>
+
+      {/* Welcome popup after registration */}
+      {showWelcome && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
+          <div style={{ background: 'linear-gradient(145deg,rgba(13,31,23,0.98),rgba(8,20,14,0.99))', border: '1px solid rgba(86,171,145,0.3)', borderRadius: 24, padding: '32px 28px', maxWidth: 360, width: '100%', textAlign: 'center', boxShadow: '0 30px 80px rgba(0,0,0,0.6)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🌿</div>
+            <div style={{ fontFamily: theme.fonts.serif, fontSize: 24, color: theme.colors.text, marginBottom: 18 }}>Ласкаво просимо!</div>
+            <div style={{ fontFamily: theme.fonts.sans, fontSize: 14, color: 'rgba(168,230,207,0.75)', lineHeight: 1.75, marginBottom: 28, textAlign: 'left', background: 'rgba(86,171,145,0.06)', border: '1px solid rgba(86,171,145,0.15)', borderRadius: 14, padding: '16px 18px' }}>
+              Цей сайт був створений недавно, тому можливо учасників є не сильно багато. Буду вдячний за розуміння 🙏<br /><br />
+              Кожному новому учаснику дається <strong style={{ color: '#f9d976' }}>⭐ Premium підписка на 1 місяць</strong> — з повагою, <strong style={{ color: theme.colors.green.light }}>Адмін</strong>
+            </div>
+            <button
+              onClick={() => { setShowWelcome(false); navigate('/search'); }}
+              style={{ width: '100%', padding: '14px', borderRadius: 14, background: 'linear-gradient(135deg,#56ab91,#3d8b6a)', border: 'none', color: '#fff', fontFamily: theme.fonts.sans, fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 20px rgba(86,171,145,0.4)' }}
+            >
+              Дякую, розпочати! 💚
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

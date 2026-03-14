@@ -32,7 +32,8 @@ export class UsersService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const adminEmail = process.env.ADMIN_EMAIL;
     const isAdmin = !!(adminEmail && dto.email.toLowerCase() === adminEmail.toLowerCase());
-    const user = this.repo.create({ ...dto, passwordHash, isAdmin });
+    const premiumUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const user = this.repo.create({ ...dto, passwordHash, isAdmin, isPremium: true, premiumUntil });
     return this.repo.save(user);
   }
 
