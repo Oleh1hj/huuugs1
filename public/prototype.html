@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Huugs — Прототип нового дизайну</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #080514;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ─── Page nav ─── */
+  .page-switcher {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 1000;
+    background: rgba(8,5,20,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; justify-content: center; gap: 8px;
+    padding: 12px 16px;
+  }
+  .psw-btn {
+    padding: 8px 18px; border-radius: 50px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.5);
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .psw-btn.active {
+    background: linear-gradient(135deg, #FF4578, #C850C0);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 0 20px rgba(255,69,120,0.4);
+  }
+
+  /* ─── Screens wrapper ─── */
+  .screens { display: flex; justify-content: center; align-items: flex-start; gap: 32px; padding: 80px 24px 40px; flex-wrap: wrap; }
+
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .screen-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 2px; }
+
+  /* ─── Phone shell ─── */
+  .phone {
+    width: 375px; height: 812px;
+    border-radius: 52px;
+    border: 2px solid rgba(255,255,255,0.12);
+    background: #0d0618;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    display: none;
+  }
+  .phone.visible { display: block; }
+
+  /* ─── Notch ─── */
+  .notch {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 30px;
+    background: #0d0618;
+    border-radius: 0 0 20px 20px;
+    z-index: 10;
+  }
+
+  /* ════════════════════════════════════════
+     SCREEN 1 — AUTH
+  ════════════════════════════════════════ */
+  .auth-screen {
+    width: 100%; height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: #0d0618;
+  }
+
+  .auth-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(255,69,120,0.18) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 30%, rgba(168,85,247,0.2) 0%, transparent 55%),
+                radial-gradient(ellipse 70% 50% at 50% 80%, rgba(65,88,208,0.15) 0%, transparent 60%),
+                linear-gradient(170deg, #0d0618 0%, #1a0a2e 50%, #0d0618 100%);
+  }
+
+  .auth-orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(60px); pointer-events: none;
+  }
+  .auth-orb-1 { width: 280px; height: 280px; top: -60px; left: -80px; background: rgba(255,69,120,0.22); }
+  .auth-orb-2 { width: 240px; height: 240px; top: 100px; right: -70px; background: rgba(168,85,247,0.2); }
+  .auth-orb-3 { width: 300px; height: 300px; bottom: -80px; left: 20px; background: rgba(65,88,208,0.18); }
+
+  .auth-content {
+    position: relative; z-index: 2;
+    height: 100%;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    padding: 0 28px;
+  }
+
+  .auth-logo-block { text-align: center; margin-bottom: 32px; }
+  .auth-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px; font-weight: 600; line-height: 1;
+    background: linear-gradient(135deg, #FF8FB1 0%, #FF4578 35%, #C850C0 65%, #a78bfa 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+  }
+  .auth-tagline {
+    font-size: 10px; font-weight: 600; letter-spacing: 3px;
+    color: rgba(255,255,255,0.3); text-transform: uppercase; margin-top: 6px;
+  }
+
+  .auth-card {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 28px;
+    padding: 28px 24px;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+  }
+
+  .auth-card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px; font-weight: 600; color: #fff;
+    margin-bottom: 4px;
+  }
+  .auth-card-sub { font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 22px; }
+
+  .auth-tabs {
+    display: flex; gap: 4px; margin-bottom: 22px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px; padding: 4px;
+  }
+  .auth-tab {
+    flex: 1; padding: 8px; border-radius: 10px;
+    font-size: 13px; font-weight: 600; text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    color: rgba(255,255,255,0.4);
+  }
+  .auth-tab.active {
+    background: linear-gradient(135deg, #FF4578, #C850C0);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(255,69,120,0.3);
+  }
+
+  .auth-input-group { margin-bottom: 12px; }
+  .auth-input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 13px 16px 13px 44px;
+    font-size: 14px; color: #fff;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+  }
+  .auth-input-wrap { position: relative; }
+  .auth-input-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 16px; opacity: 0.5;
+  }
+
+  .auth-btn-primary {
+    width: 100%; padding: 15px;
+    background: linear-gradient(135deg, #FF4578 0%, #C850C0 50%, #4158D0 100%);
+    border: none; border-radius: 16px;
+    font-size: 15px; font-weight: 700; color: #fff;
+    cursor: pointer; margin-top: 6px;
+    box-shadow: 0 8px 24px rgba(255,69,120,0.35);
+    letter-spacing: 0.3px;
+  }
+
+  .auth-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 16px 0;
+    font-size: 11px; color: rgba(255,255,255,0.25);
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: ''; flex: 1; height: 1px;
+    background: rgba(255,255,255,0.08);
+  }
+
+  .auth-btn-outline {
+    width: 100%; padding: 13px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px;
+    font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  /* ════════════════════════════════════════
+     SCREEN 2 — SEARCH / DISCOVERY
+  ════════════════════════════════════════ */
+  .main-screen {
+    width: 100%; height: 100%;
+    background: #0d0618;
+    display: flex; flex-direction: column;
+  }
+
+  /* Header */
+  .main-header {
+    padding: 46px 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .main-logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px; font-weight: 600;
+    background: linear-gradient(135deg, #FF8FB1, #FF4578, #C850C0);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .header-icon-btn {
+    width: 36px; height: 36px; border-radius: 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; cursor: pointer;
+  }
+  .header-avatar {
+    width: 36px; height: 36px; border-radius: 12px;
+    background: linear-gradient(135deg, #FF4578, #C850C0);
+    border: 2px solid rgba(255,69,120,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #fff;
+  }
+  .coins-badge {
+    background: rgba(255,209,102,0.1);
+    border: 1px solid rgba(255,209,102,0.25);
+    border-radius: 50px; padding: 5px 10px;
+    font-size: 12px; font-weight: 700; color: #FFD166;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  /* Profile card big */
+  .main-content { flex: 1; padding: 16px 16px 8px; overflow: hidden; }
+
+  .profile-card-big {
+    width: 100%; height: 440px;
+    border-radius: 28px;
+    overflow: hidden;
+    position: relative;
+    background: linear-gradient(160deg, #2d1b2e 0%, #1a0a35 100%);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+
+  .profile-photo {
+    width: 100%; height: 100%;
+    background: linear-gradient(160deg, #2d1535 0%, #1a0a3e 40%, #0f0520 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .photo-placeholder {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255,69,120,0.3), rgba(200,80,192,0.3));
+    border: 2px solid rgba(255,69,120,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px;
+  }
+
+  .profile-card-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(13,6,24,0.98) 0%, rgba(13,6,24,0.7) 50%, transparent 100%);
+    padding: 20px 20px 20px;
+  }
+
+  .profile-name-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+  }
+  .profile-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 600; color: #fff;
+  }
+  .profile-age { font-size: 22px; color: rgba(255,255,255,0.6); font-family: 'Cormorant Garamond', serif; }
+  .verified-badge {
+    background: linear-gradient(135deg, #4158D0, #3b5bdb);
+    border-radius: 50%; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+  }
+
+  .profile-meta {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+    font-size: 12px; color: rgba(255,255,255,0.55);
+  }
+  .online-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #4ade80; box-shadow: 0 0 6px #4ade80;
+    display: inline-block;
+  }
+
+  .profile-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .profile-tag {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50px; padding: 4px 10px;
+    font-size: 11px; color: rgba(255,255,255,0.6);
+  }
+
+  .mutual-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,69,120,0.15);
+    border: 1px solid rgba(255,69,120,0.3);
+    border-radius: 50px; padding: 4px 12px;
+    font-size: 11px; font-weight: 700; color: #FF8FB1;
+    margin-bottom: 8px;
+  }
+
+  /* Action buttons */
+  .card-actions {
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px; padding: 14px 0 8px;
+  }
+  .action-btn {
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 20px;
+  }
+  .action-btn-skip {
+    width: 52px; height: 52px; border-radius: 18px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: rgba(255,255,255,0.5);
+  }
+  .action-btn-chat {
+    padding: 0 24px; height: 56px; border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255,69,120,0.15), rgba(200,80,192,0.15));
+    border: 1px solid rgba(255,69,120,0.3) !important;
+    color: #FF8FB1; font-size: 13px; font-weight: 700; gap: 6px;
+    display: flex; align-items: center;
+  }
+  .action-btn-like {
+    width: 60px; height: 60px; border-radius: 20px;
+    background: linear-gradient(135deg, #FF4578, #C850C0);
+    box-shadow: 0 8px 24px rgba(255,69,120,0.45);
+    color: #fff;
+  }
+
+  /* Mini cards row */
+  .mini-cards {
+    display: flex; gap: 10px; padding: 0 16px 8px;
+    overflow-x: hidden;
+  }
+  .mini-card {
+    flex: 1; height: 90px; border-radius: 18px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.07);
+    overflow: hidden; position: relative;
+    display: flex; align-items: flex-end;
+  }
+  .mini-card-photo {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    background: linear-gradient(160deg, rgba(255,69,120,0.1), rgba(168,85,247,0.1));
+  }
+  .mini-card-info {
+    position: relative; z-index: 1;
+    width: 100%; padding: 6px 8px;
+    background: linear-gradient(to top, rgba(13,6,24,0.9), transparent);
+  }
+  .mini-name { font-size: 11px; font-weight: 700; color: #fff; }
+  .mini-age { font-size: 10px; color: rgba(255,255,255,0.45); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    padding: 10px 16px 24px;
+    background: rgba(13,6,24,0.95);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+  }
+  .nav-items { display: flex; justify-content: space-around; }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 14px; border-radius: 14px; cursor: pointer;
+    position: relative; transition: all 0.2s;
+    min-width: 52px;
+  }
+  .nav-item.active {
+    background: linear-gradient(135deg, rgba(255,69,120,0.15), rgba(200,80,192,0.1));
+  }
+  .nav-icon { font-size: 20px; line-height: 1; }
+  .nav-label {
+    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.3);
+  }
+  .nav-item.active .nav-label { color: #FF8FB1; }
+  .nav-badge {
+    position: absolute; top: 4px; right: 8px;
+    background: #FF4578; border-radius: 50%;
+    width: 16px; height: 16px;
+    font-size: 9px; font-weight: 800; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid #0d0618;
+  }
+  .nav-item.active .nav-icon { filter: drop-shadow(0 0 8px rgba(255,69,120,0.6)); }
+
+  /* ════════════════════════════════════════
+     SCREEN 3 — LIKES PAGE
+  ════════════════════════════════════════ */
+  .likes-screen {
+    width: 100%; height: 100%;
+    background: #0d0618;
+    display: flex; flex-direction: column;
+  }
+
+  .likes-header {
+    padding: 46px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .likes-title-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+  }
+  .likes-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 600; color: #fff;
+  }
+  .likes-count-badge {
+    background: linear-gradient(135deg, #FF4578, #C850C0);
+    border-radius: 50px; padding: 3px 10px;
+    font-size: 12px; font-weight: 700; color: #fff;
+    box-shadow: 0 4px 12px rgba(255,69,120,0.35);
+  }
+  .likes-sub { font-size: 12px; color: rgba(255,255,255,0.35); }
+
+  .likes-content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  .like-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 14px 14px;
+    display: flex; align-items: center; gap: 12px;
+    transition: all 0.2s;
+  }
+  .like-card.mutual {
+    background: rgba(255,69,120,0.07);
+    border-color: rgba(255,69,120,0.2);
+  }
+
+  .like-avatar {
+    width: 54px; height: 54px; border-radius: 16px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    position: relative;
+  }
+  .like-avatar-img {
+    width: 100%; height: 100%;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255,69,120,0.25), rgba(168,85,247,0.25));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    border: 2px solid rgba(255,69,120,0.2);
+  }
+  .like-avatar-img.green { border-color: rgba(74,222,128,0.3); background: linear-gradient(135deg, rgba(74,222,128,0.15), rgba(56,189,248,0.15)); }
+  .like-avatar-img.purple { border-color: rgba(168,85,247,0.3); background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(99,102,241,0.15)); }
+
+  .like-info { flex: 1; min-width: 0; }
+  .like-name { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .like-meta { font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 6px; }
+
+  .like-mutual-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(255,69,120,0.12);
+    border: 1px solid rgba(255,69,120,0.25);
+    border-radius: 50px; padding: 2px 8px;
+    font-size: 10px; font-weight: 700; color: #FF8FB1;
+  }
+
+  .like-action-btn {
+    flex-shrink: 0; width: 42px; height: 42px;
+    border-radius: 14px; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .like-action-heart {
+    background: linear-gradient(135deg, #FF4578, #C850C0);
+    box-shadow: 0 4px 14px rgba(255,69,120,0.4);
+    color: #fff;
+  }
+  .like-action-chat {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: rgba(255,255,255,0.6);
+  }
+
+  /* ════════════════════════════════════════
+     SCREEN 4 — PROFILE / COLORS SHOWCASE
+  ════════════════════════════════════════ */
+  .palette-screen {
+    width: 100%; height: 100%;
+    background: #0d0618;
+    display: flex; flex-direction: column;
+    padding: 46px 20px 24px;
+    overflow-y: auto;
+  }
+  .palette-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 28px; font-weight: 600; color: #fff; margin-bottom: 4px;
+  }
+  .palette-sub { font-size: 12px; color: rgba(255,255,255,0.35); margin-bottom: 24px; }
+
+  .color-swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+  .swatch {
+    height: 64px; border-radius: 16px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 10px 12px;
+    position: relative; overflow: hidden;
+  }
+  .swatch-name { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.9); }
+  .swatch-hex { font-size: 10px; color: rgba(255,255,255,0.5); font-family: monospace; }
+
+  .component-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 1.5px; margin: 16px 0 10px; }
+
+  .btns-demo { display: flex; flex-direction: column; gap: 8px; }
+  .demo-btn-primary {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, #FF4578 0%, #C850C0 50%, #4158D0 100%);
+    border: none; border-radius: 16px;
+    font-size: 14px; font-weight: 700; color: #fff; cursor: pointer;
+    box-shadow: 0 8px 24px rgba(255,69,120,0.35);
+    letter-spacing: 0.3px;
+  }
+  .demo-btn-secondary {
+    width: 100%; padding: 13px;
+    background: rgba(255,69,120,0.08);
+    border: 1px solid rgba(255,69,120,0.25);
+    border-radius: 16px;
+    font-size: 14px; font-weight: 600; color: #FF8FB1; cursor: pointer;
+  }
+  .demo-btn-outline {
+    width: 100%; padding: 13px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.5); cursor: pointer;
+  }
+
+  .input-demo {
+    position: relative; margin-bottom: 8px;
+  }
+  .input-demo input {
+    width: 100%; padding: 13px 16px 13px 42px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; color: #fff;
+    font-family: 'Inter', sans-serif; font-size: 14px;
+    outline: none;
+  }
+  .input-demo input:focus { border-color: rgba(255,69,120,0.5); background: rgba(255,69,120,0.05); }
+  .input-demo .icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; opacity: 0.4; }
+
+  .glass-card-demo {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 16px;
+    margin-top: 8px;
+  }
+  .card-demo-row { display: flex; align-items: center; gap: 12px; }
+  .card-demo-avatar {
+    width: 46px; height: 46px; border-radius: 14px;
+    background: linear-gradient(135deg, #FF4578, #C850C0);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .card-demo-text .name { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .card-demo-text .meta { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+  .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .badge {
+    padding: 4px 10px; border-radius: 50px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge-rose { background: rgba(255,69,120,0.12); border: 1px solid rgba(255,69,120,0.25); color: #FF8FB1; }
+  .badge-purple { background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.25); color: #c4b5fd; }
+  .badge-gold { background: rgba(255,209,102,0.12); border: 1px solid rgba(255,209,102,0.25); color: #FFD166; }
+  .badge-blue { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); color: #93c5fd; }
+  .badge-green { background: rgba(74,222,128,0.12); border: 1px solid rgba(74,222,128,0.25); color: #86efac; }
+
+  /* ─── Glow pulse animation ─── */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,69,120,0.3); }
+    50% { box-shadow: 0 0 40px rgba(255,69,120,0.6); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  .float { animation: float 3s ease-in-out infinite; }
+
+  /* Desktop layout helper */
+  @media (max-width: 1400px) { .screens { gap: 20px; } }
+  @media (max-width: 900px) { .phone { transform: scale(0.85); transform-origin: top center; } }
+  @media (max-width: 600px) { .phone { width: 340px; height: 736px; } }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<div class="page-switcher">
+  <button class="psw-btn active" onclick="showScreen('auth')">🔐 Вхід</button>
+  <button class="psw-btn" onclick="showScreen('search')">🔍 Пошук</button>
+  <button class="psw-btn" onclick="showScreen('likes')">💘 Лайки</button>
+  <button class="psw-btn" onclick="showScreen('palette')">🎨 Палітра</button>
+</div>
+
+<div class="screens">
+
+  <!-- ── SCREEN 1: AUTH ── -->
+  <div class="screen-wrap">
+    <div class="screen-label">Вхід / Реєстрація</div>
+    <div class="phone visible" id="phone-auth">
+      <div class="notch"></div>
+      <div class="auth-screen">
+        <div class="auth-bg"></div>
+        <div class="auth-orb auth-orb-1"></div>
+        <div class="auth-orb auth-orb-2"></div>
+        <div class="auth-orb auth-orb-3"></div>
+
+        <div class="auth-content">
+          <div class="auth-logo-block">
+            <div class="auth-logo float">Huugs</div>
+            <div class="auth-tagline">Find your person</div>
+          </div>
+
+          <div class="auth-card">
+            <div class="auth-card-title">З поверненням ✨</div>
+            <div class="auth-card-sub">Увійди, щоб продовжити</div>
+
+            <div class="auth-tabs">
+              <div class="auth-tab active">Увійти</div>
+              <div class="auth-tab">Реєстрація</div>
+            </div>
+
+            <div class="auth-input-group">
+              <div class="auth-input-wrap">
+                <span class="auth-input-icon">📧</span>
+                <div class="auth-input" style="color: rgba(255,255,255,0.3);">email@example.com</div>
+              </div>
+            </div>
+            <div class="auth-input-group">
+              <div class="auth-input-wrap">
+                <span class="auth-input-icon">🔒</span>
+                <div class="auth-input" style="color: rgba(255,255,255,0.3);">••••••••</div>
+              </div>
+            </div>
+
+            <div style="text-align: right; margin: 8px 0 4px;">
+              <span style="font-size: 12px; color: rgba(255,69,120,0.8); cursor: pointer;">Забув пароль?</span>
+            </div>
+
+            <button class="auth-btn-primary">Увійти →</button>
+
+            <div class="auth-divider">або</div>
+
+            <button class="auth-btn-outline">Створити акаунт</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 2: SEARCH ── -->
+  <div class="screen-wrap">
+    <div class="screen-label">Пошук / Знайомства</div>
+    <div class="phone" id="phone-search">
+      <div class="notch"></div>
+      <div class="main-screen">
+        <!-- Header -->
+        <div class="main-header">
+          <div class="main-logo">Huugs</div>
+          <div class="header-actions">
+            <div class="coins-badge">🪙 240</div>
+            <div class="header-icon-btn">🔍</div>
+            <div class="header-avatar">М</div>
+          </div>
+        </div>
+
+        <!-- Big card -->
+        <div class="main-content">
+          <div class="profile-card-big">
+            <div class="profile-photo">
+              <div class="photo-placeholder float">👤</div>
+            </div>
+            <div class="profile-card-overlay">
+              <div class="mutual-badge">✨ Взаємний лайк</div>
+              <div class="profile-name-row">
+                <span class="profile-name">Sophia</span>
+                <span class="profile-age">, 24</span>
+                <div class="verified-badge">✓</div>
+              </div>
+              <div class="profile-meta">
+                <div><div class="online-dot" style="display:inline-block; margin-right: 4px;"></div>Онлайн</div>
+                <div>📍 Київ</div>
+                <div>🎨 Дизайнер</div>
+              </div>
+              <div class="profile-tags">
+                <div class="profile-tag">🎵 Музика</div>
+                <div class="profile-tag">✈️ Подорожі</div>
+                <div class="profile-tag">📸 Фото</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="card-actions">
+          <button class="action-btn action-btn-skip">✕</button>
+          <button class="action-btn action-btn-chat">💬 Написати</button>
+          <button class="action-btn action-btn-like">♡</button>
+        </div>
+
+        <!-- Mini cards -->
+        <div class="mini-cards">
+          <div class="mini-card">
+            <div class="mini-card-photo">👩</div>
+            <div class="mini-card-info"><div class="mini-name">Anna</div><div class="mini-age">22 р.</div></div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-photo">👩‍🦱</div>
+            <div class="mini-card-info"><div class="mini-name">Maria</div><div class="mini-age">25 р.</div></div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-photo">👩‍🦰</div>
+            <div class="mini-card-info"><div class="mini-name">Dasha</div><div class="mini-age">21 р.</div></div>
+          </div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <div class="bottom-nav">
+          <div class="nav-items">
+            <div class="nav-item active">
+              <div class="nav-icon">🔍</div>
+              <div class="nav-label">Пошук</div>
+            </div>
+            <div class="nav-item" style="position:relative">
+              <div class="nav-icon">💘</div>
+              <div class="nav-label">Лайки</div>
+              <div class="nav-badge">3</div>
+            </div>
+            <div class="nav-item">
+              <div class="nav-icon">🍾</div>
+              <div class="nav-label">Гра</div>
+            </div>
+            <div class="nav-item" style="position:relative">
+              <div class="nav-icon">💬</div>
+              <div class="nav-label">Чати</div>
+              <div class="nav-badge" style="background:#a78bfa;">2</div>
+            </div>
+            <div class="nav-item">
+              <div class="nav-icon">👤</div>
+              <div class="nav-label">Профіль</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 3: LIKES ── -->
+  <div class="screen-wrap">
+    <div class="screen-label">Хто лайкнув</div>
+    <div class="phone" id="phone-likes">
+      <div class="notch"></div>
+      <div class="likes-screen">
+        <div class="likes-header">
+          <div class="likes-title-row">
+            <div class="likes-title">Лайки</div>
+            <div class="likes-count-badge">5 нових</div>
+          </div>
+          <div class="likes-sub">Люди, яким ти сподобався</div>
+        </div>
+
+        <div class="likes-content">
+          <!-- Mutual -->
+          <div class="like-card mutual">
+            <div class="like-avatar">
+              <div class="like-avatar-img">😍</div>
+            </div>
+            <div class="like-info">
+              <div class="like-name">Sophia, 24</div>
+              <div class="like-meta">📍 Київ · Онлайн</div>
+              <div class="like-mutual-tag">✨ Взаємний лайк</div>
+            </div>
+            <button class="like-action-btn like-action-heart">💬</button>
+          </div>
+
+          <!-- Regular -->
+          <div class="like-card">
+            <div class="like-avatar">
+              <div class="like-avatar-img green">👩‍🦱</div>
+            </div>
+            <div class="like-info">
+              <div class="like-name">Anna, 22</div>
+              <div class="like-meta">📍 Львів · 2 год. тому</div>
+            </div>
+            <button class="like-action-btn like-action-heart">♡</button>
+          </div>
+
+          <div class="like-card">
+            <div class="like-avatar">
+              <div class="like-avatar-img purple">👩‍🦰</div>
+            </div>
+            <div class="like-info">
+              <div class="like-name">Kate, 26</div>
+              <div class="like-meta">📍 Одеса · 4 год. тому</div>
+            </div>
+            <button class="like-action-btn like-action-heart">♡</button>
+          </div>
+
+          <div class="like-card">
+            <div class="like-avatar">
+              <div class="like-avatar-img">😊</div>
+            </div>
+            <div class="like-info">
+              <div class="like-name">Dasha, 23</div>
+              <div class="like-meta">📍 Харків · вчора</div>
+            </div>
+            <button class="like-action-btn like-action-heart">♡</button>
+          </div>
+
+          <div class="like-card">
+            <div class="like-avatar">
+              <div class="like-avatar-img green">🙂</div>
+            </div>
+            <div class="like-info">
+              <div class="like-name">Olia, 21</div>
+              <div class="like-meta">📍 Київ · 2 дні тому</div>
+            </div>
+            <button class="like-action-btn like-action-heart">♡</button>
+          </div>
+        </div>
+
+        <!-- Nav -->
+        <div class="bottom-nav">
+          <div class="nav-items">
+            <div class="nav-item">
+              <div class="nav-icon">🔍</div>
+              <div class="nav-label">Пошук</div>
+            </div>
+            <div class="nav-item active">
+              <div class="nav-icon">💘</div>
+              <div class="nav-label">Лайки</div>
+            </div>
+            <div class="nav-item">
+              <div class="nav-icon">🍾</div>
+              <div class="nav-label">Гра</div>
+            </div>
+            <div class="nav-item" style="position:relative">
+              <div class="nav-icon">💬</div>
+              <div class="nav-label">Чати</div>
+              <div class="nav-badge" style="background:#a78bfa;">2</div>
+            </div>
+            <div class="nav-item">
+              <div class="nav-icon">👤</div>
+              <div class="nav-label">Профіль</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 4: PALETTE ── -->
+  <div class="screen-wrap">
+    <div class="screen-label">Дизайн-система</div>
+    <div class="phone" id="phone-palette">
+      <div class="notch"></div>
+      <div class="palette-screen">
+        <div class="palette-title">Дизайн-система</div>
+        <div class="palette-sub">Кольори, компоненти, типографіка</div>
+
+        <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px;">Кольорова палітра</div>
+        <div class="color-swatches">
+          <div class="swatch" style="background:linear-gradient(135deg,#FF4578,#C850C0)">
+            <div class="swatch-name">Роза-градієнт</div>
+            <div class="swatch-hex">#FF4578 → #C850C0</div>
+          </div>
+          <div class="swatch" style="background:linear-gradient(135deg,#C850C0,#4158D0)">
+            <div class="swatch-name">Фіолет-синій</div>
+            <div class="swatch-hex">#C850C0 → #4158D0</div>
+          </div>
+          <div class="swatch" style="background:#0d0618; border:1px solid rgba(255,255,255,0.1)">
+            <div class="swatch-name">Фон темний</div>
+            <div class="swatch-hex">#0d0618</div>
+          </div>
+          <div class="swatch" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); backdrop-filter:blur(20px)">
+            <div class="swatch-name">Glass card</div>
+            <div class="swatch-hex">rgba(255,255,255,.06)</div>
+          </div>
+        </div>
+
+        <div class="component-title">Кнопки</div>
+        <div class="btns-demo">
+          <button class="demo-btn-primary">Основна дія →</button>
+          <button class="demo-btn-secondary">♡ Лайкнути</button>
+          <button class="demo-btn-outline">Скасувати</button>
+        </div>
+
+        <div class="component-title">Поля вводу</div>
+        <div class="input-demo">
+          <span class="icon">📧</span>
+          <input type="text" placeholder="Email адреса" />
+        </div>
+
+        <div class="component-title">Картка / Glass</div>
+        <div class="glass-card-demo">
+          <div class="card-demo-row">
+            <div class="card-demo-avatar">👤</div>
+            <div class="card-demo-text">
+              <div class="name">Sophia, 24</div>
+              <div class="meta">📍 Київ · 🟢 Онлайн</div>
+            </div>
+          </div>
+          <div class="badge-row">
+            <span class="badge badge-rose">✨ Mutual</span>
+            <span class="badge badge-gold">⭐ Premium</span>
+            <span class="badge badge-blue">✓ Верифік.</span>
+            <span class="badge badge-purple">Адмін</span>
+          </div>
+        </div>
+
+        <div class="component-title">Типографіка</div>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:4px;">
+          <div style="font-family:'Cormorant Garamond',serif; font-size:32px; font-weight:600; background:linear-gradient(135deg,#FF8FB1,#FF4578,#C850C0); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Huugs — Заголовок</div>
+          <div style="font-size:16px; font-weight:600; color:#fff;">Inter Bold — підзаголовок</div>
+          <div style="font-size:13px; color:rgba(255,255,255,0.5);">Inter Regular — body text</div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.3);">CAPTION — UPPERCASE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showScreen(name) {
+    // Hide all phones
+    document.querySelectorAll('.phone').forEach(p => p.classList.remove('visible'));
+    // Show target
+    document.getElementById('phone-' + name).classList.add('visible');
+    // Update nav buttons
+    document.querySelectorAll('.psw-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
