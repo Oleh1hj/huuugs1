@@ -26,6 +26,10 @@ export interface User {
   contactFilterSameCountry: boolean;
   // Virtual currency
   coins: number;
+  // Status
+  isVerified: boolean;
+  isPremium: boolean;
+  premiumUntil: string | null;
   isAdmin: boolean;
   createdAt: string;
   online?: boolean;    // runtime flag set client-side

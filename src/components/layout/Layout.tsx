@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth.store';
 import { useUiStore } from '@/store/ui.store';
 import { NavBar } from './NavBar';
@@ -7,6 +9,8 @@ import { MatchModal } from '@/components/MatchModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
 import { theme, g } from '@/styles/theme';
+import { chatsApi } from '@/api/chats.api';
+import { likesApi } from '@/api/likes.api';
 
 export function Layout() {
   const { user } = useAuthStore();
@@ -14,6 +18,33 @@ export function Layout() {
   const matchNotif = useUiStore((s) => s.matchNotif);
   const t = useUiTranslations();
   const navigate = useNavigate();
+
+  // For tab badge (document.title)
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: chatsApi.getConversations,
+    refetchInterval: 30_000,
+    enabled: !!user,
+  });
+
+  const { data: whoLiked = [] } = useQuery({
+    queryKey: ['likes', 'received'],
+    queryFn: likesApi.getReceived,
+    refetchInterval: 60_000,
+    enabled: !!user,
+  });
+
+  const unreadChats = conversations.filter(
+    (c) => c.lastMessage && !c.lastMessage.isRead && c.lastMessage.senderId !== user?.id,
+  ).length;
+
+  const seenCount = parseInt(localStorage.getItem('huugs_likes_seen') ?? '0');
+  const newLikes = Math.max(0, whoLiked.length - seenCount);
+  const totalBadge = unreadChats + newLikes;
+
+  useEffect(() => {
+    document.title = totalBadge > 0 ? `(${totalBadge}) Huugs` : 'Huugs';
+  }, [totalBadge]);
 
   return (
     <div style={{
@@ -50,6 +81,16 @@ export function Layout() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Coins button */}
+              {user && (
+                <button
+                  onClick={() => navigate('/coins')}
+                  style={{ background: 'rgba(249,217,118,0.08)', border: '1px solid rgba(249,217,118,0.25)', borderRadius: 50, padding: '6px 12px', fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 700, color: '#f9d976', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  🪙 {user.coins ?? 0}
+                </button>
+              )}
+
               {/* Lang switcher */}
               <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 50, padding: 3, gap: 2, border: `1px solid ${theme.colors.glassBorder}` }}>
                 {(['ua', 'by', 'pl', 'en'] as const).map((code) => (
@@ -68,6 +109,9 @@ export function Layout() {
               {user && (
                 <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => navigate('/profile')} title={t.profile}>
                   <Avatar photo={user.photo} name={user.name} size={38} border={`2px solid ${theme.colors.green.mid}`} />
+                  {user.isPremium && (
+                    <div style={{ position: 'absolute', top: -4, right: -4, background: '#f9d976', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, border: '2px solid #0d2137' }}>⭐</div>
+                  )}
                 </div>
               )}
             </div>

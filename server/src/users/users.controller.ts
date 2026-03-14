@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from './user.entity';
@@ -23,7 +25,6 @@ class UpdateProfileDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) lookingForAgeMin?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) lookingForAgeMax?: number;
   @IsOptional() @IsIn(['anyone', 'liked_me', 'mutual']) whoCanContact?: string;
-  // Contact filters
   @IsOptional() @IsIn(['any', 'male', 'female']) contactFilterGender?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) contactFilterAgeMin?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) @Max(100) contactFilterAgeMax?: number;
@@ -37,6 +38,15 @@ class ProfilesQueryDto {
   @IsOptional() @IsString() city?: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) ageMin?: number;
   @IsOptional() @Type(() => Number) @IsInt() @Min(18) ageMax?: number;
+}
+
+class ReportDto {
+  @IsOptional() @IsString() @MaxLength(500) reason?: string;
+}
+
+class AdminActionDto {
+  @IsOptional() @Transform(({ value }) => value === true || value === 'true') @IsBoolean() value?: boolean;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(365) days?: number;
 }
 
 @Controller('users')
@@ -54,8 +64,25 @@ export class UsersController {
     });
   }
 
+  @Get('blocked')
+  getBlocked(@CurrentUser() user: User) {
+    return this.usersService.getBlockedIds(user.id);
+  }
+
+  @Get('who-viewed-me')
+  getWhoViewedMe(@CurrentUser() user: User) {
+    return this.usersService.getWhoViewedMe(user.id);
+  }
+
+  @Get('view-count')
+  getViewCount(@CurrentUser() user: User) {
+    return this.usersService.getViewCount(user.id).then((count) => ({ count }));
+  }
+
   @Get(':id')
-  getPublicProfile(@Param('id') id: string) {
+  async getPublicProfile(@CurrentUser() me: User, @Param('id') id: string) {
+    // Record that me viewed this profile
+    this.usersService.recordView(me.id, id).catch(() => {});
     return this.usersService.findPublicById(id);
   }
 
@@ -64,8 +91,45 @@ export class UsersController {
     return this.usersService.updateProfile(user.id, dto);
   }
 
+  @Delete('me')
+  @HttpCode(204)
+  async deleteMe(@CurrentUser() user: User) {
+    await this.usersService.deleteAccount(user.id);
+  }
+
   @Post('daily-bonus')
   dailyBonus(@CurrentUser() user: User) {
     return this.usersService.claimDailyBonus(user.id);
+  }
+
+  @Post(':id/block')
+  @HttpCode(204)
+  async blockUser(@CurrentUser() user: User, @Param('id') id: string) {
+    await this.usersService.blockUser(user.id, id);
+  }
+
+  @Delete(':id/block')
+  @HttpCode(204)
+  async unblockUser(@CurrentUser() user: User, @Param('id') id: string) {
+    await this.usersService.unblockUser(user.id, id);
+  }
+
+  @Post(':id/report')
+  @HttpCode(204)
+  async reportUser(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: ReportDto) {
+    await this.usersService.reportUser(user.id, id, dto.reason);
+  }
+
+  // Admin endpoints
+  @Post(':id/verify')
+  @HttpCode(204)
+  async setVerified(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
+    await this.usersService.setVerified(user.id, id, dto.value ?? true);
+  }
+
+  @Post(':id/premium')
+  @HttpCode(204)
+  async setPremium(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
+    await this.usersService.setPremium(user.id, id, dto.value ?? true, dto.days ?? 30);
   }
 }

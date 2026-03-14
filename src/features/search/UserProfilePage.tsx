@@ -21,6 +21,8 @@ export function UserProfilePage() {
   const queryClient = useQueryClient();
   const [photoIdx, setPhotoIdx] = useState(0);
   const [superLikeSent, setSuperLikeSent] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', userId],
@@ -33,6 +35,11 @@ export function UserProfilePage() {
     queryFn: likesApi.getGiven,
   });
 
+  const { data: blockedIds = [] } = useQuery({
+    queryKey: ['blocked-ids'],
+    queryFn: profilesApi.getBlockedIds,
+  });
+
   const { data: onlineIds = [] } = useQuery({
     queryKey: ['online-users'],
     queryFn: chatsApi.getOnlineUsers,
@@ -41,6 +48,7 @@ export function UserProfilePage() {
 
   const isLiked = likedIds.includes(userId ?? '');
   const isOnline = onlineIds.includes(userId ?? '');
+  const isBlocked = blockedIds.includes(userId ?? '');
 
   const superLikeMutation = useMutation({
     mutationFn: () => likesApi.superLike(userId!),
@@ -67,6 +75,22 @@ export function UserProfilePage() {
         showMatch({ partnerId: profile.id, partnerName: profile.name, partnerPhoto: profile.photo, conversationId: result.conversationId });
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
       }
+    },
+  });
+
+  const blockMutation = useMutation({
+    mutationFn: () => isBlocked ? profilesApi.unblockUser(userId!) : profilesApi.blockUser(userId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blocked-ids'] });
+      if (!isBlocked) navigate(-1);
+    },
+  });
+
+  const reportMutation = useMutation({
+    mutationFn: () => profilesApi.reportUser(userId!, reportReason),
+    onSuccess: () => {
+      setShowReportModal(false);
+      setReportReason('');
     },
   });
 
@@ -126,10 +150,22 @@ export function UserProfilePage() {
             </div>
           )}
 
+          {/* Premium badge */}
+          {profile.isPremium && (
+            <div style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(249,217,118,0.9)', borderRadius: 50, padding: '4px 10px', fontFamily: theme.fonts.sans, fontSize: 11, color: '#1a1000', fontWeight: 700 }}>
+              ⭐ Premium
+            </div>
+          )}
+
           <div style={{ position: 'absolute', bottom: 20, left: 22, right: 22 }}>
-            <div style={{ fontFamily: theme.fonts.serif, fontSize: 30, fontWeight: 500, color: theme.colors.text }}>{profile.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontFamily: theme.fonts.serif, fontSize: 30, fontWeight: 500, color: theme.colors.text }}>{profile.name}</div>
+              {profile.isVerified && (
+                <div title="Верифікований профіль" style={{ background: 'rgba(59,130,246,0.9)', borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>✓</div>
+              )}
+            </div>
             <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: 'rgba(168,230,207,0.65)', marginTop: 4 }}>
-              {calcAge(profile.birth)} р. · 🌿 {profile.city}
+              {calcAge(profile.birth)} р. · 🌿 {profile.city}{profile.country ? ` · ${profile.country}` : ''}
             </div>
           </div>
         </div>
@@ -157,7 +193,7 @@ export function UserProfilePage() {
             </div>
           )}
 
-          {/* Buttons */}
+          {/* Action buttons */}
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <Button
               fullWidth
@@ -174,22 +210,66 @@ export function UserProfilePage() {
 
             {/* Super like */}
             <button
-              onClick={() => { if ((me?.coins ?? 0) < 1) { alert('Нема монет! Монети нараховуються автоматично.'); return; } superLikeMutation.mutate(); }}
+              onClick={() => {
+                if ((me?.coins ?? 0) < 1) { navigate('/coins'); return; }
+                superLikeMutation.mutate();
+              }}
               disabled={superLikeMutation.isPending || superLikeSent || (me?.coins ?? 0) < 1}
               style={{
                 padding: '0 14px', borderRadius: 12,
                 background: superLikeSent ? 'rgba(249,217,118,0.25)' : 'rgba(249,217,118,0.1)',
                 border: `1.5px solid rgba(249,217,118,${superLikeSent ? '0.6' : '0.35'})`,
                 color: '#f9d976', fontFamily: theme.fonts.sans, fontSize: 13, fontWeight: 700,
-                cursor: (me?.coins ?? 0) < 1 ? 'not-allowed' : 'pointer',
+                cursor: (me?.coins ?? 0) < 1 ? 'pointer' : 'pointer',
                 whiteSpace: 'nowrap', flexShrink: 0, opacity: superLikeMutation.isPending ? 0.6 : 1,
               }}
             >
               {superLikeSent ? '⭐ Відправлено' : `⭐ ${me?.coins ?? 0}🪙`}
             </button>
           </div>
+
+          {/* Block / Report */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button
+              onClick={() => { if (confirm(isBlocked ? 'Розблокувати цього користувача?' : 'Заблокувати цього користувача?')) blockMutation.mutate(); }}
+              disabled={blockMutation.isPending}
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontFamily: theme.fonts.sans, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}
+            >
+              {isBlocked ? '🔓 Розблокувати' : '🚫 Заблокувати'}
+            </button>
+            <button
+              onClick={() => setShowReportModal(true)}
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 12, background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.2)', color: '#fb923c', fontFamily: theme.fonts.sans, fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}
+            >
+              ⚠️ Поскаржитись
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Report modal */}
+      {showReportModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 16px 32px' }}>
+          <div style={{ background: 'rgba(13,31,23,0.98)', border: `1px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.xl, padding: '24px 22px', width: '100%', maxWidth: 430 }}>
+            <div style={{ fontFamily: theme.fonts.serif, fontSize: 22, color: theme.colors.text, marginBottom: 16 }}>Скарга</div>
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Опишіть причину скарги..."
+              rows={4}
+              style={{ width: '100%', padding: '12px 16px', background: theme.colors.glass, border: `1.5px solid ${theme.colors.glassBorder}`, borderRadius: theme.radius.md, fontFamily: theme.fonts.sans, fontSize: 14, color: theme.colors.text, resize: 'none', boxSizing: 'border-box', lineHeight: 1.6 }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+              <Button fullWidth onClick={() => reportMutation.mutate()} loading={reportMutation.isPending}>
+                Надіслати скаргу
+              </Button>
+              <Button fullWidth variant="ghost" onClick={() => { setShowReportModal(false); setReportReason(''); }}>
+                Скасувати
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

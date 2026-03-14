@@ -18,6 +18,18 @@ export const profilesApi = {
   >>) =>
     api.patch<User>('/users/me', data).then((r) => r.data),
 
+  deleteMe: () => api.delete('/users/me'),
+
   claimDailyBonus: () =>
     api.post<{ coins: number; alreadyClaimed: boolean }>('/users/daily-bonus').then((r) => r.data),
+
+  blockUser: (userId: string) => api.post(`/users/${userId}/block`),
+  unblockUser: (userId: string) => api.delete(`/users/${userId}/block`),
+  getBlockedIds: () => api.get<string[]>('/users/blocked').then((r) => r.data),
+
+  reportUser: (userId: string, reason?: string) =>
+    api.post(`/users/${userId}/report`, { reason }),
+
+  getWhoViewedMe: () => api.get<User[]>('/users/who-viewed-me').then((r) => r.data),
+  getViewCount: () => api.get<{ count: number }>('/users/view-count').then((r) => r.data),
 };

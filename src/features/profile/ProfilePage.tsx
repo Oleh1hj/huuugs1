@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
 import { profilesApi } from '@/api/profiles.api';
 import { Input } from '@/components/ui/Input';
@@ -9,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
 import { calcAge } from '@/utils';
 import { theme, g } from '@/styles/theme';
+import { User } from '@/types';
 
 const LANGUAGES = ['Українська', 'Білоруська', 'Польська', 'Англійська', 'Російська', 'Інша'];
 
@@ -81,6 +83,7 @@ function compressImage(file: File): Promise<string> {
 
 export function ProfilePage() {
   const { user, updateUser, logout } = useAuthStore();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const t = useUiTranslations();
   const [editMode, setEditMode] = useState(false);
@@ -181,6 +184,22 @@ export function ProfilePage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: profilesApi.deleteMe,
+    onSuccess: () => logout(),
+  });
+
+  const { data: viewers = [] } = useQuery({
+    queryKey: ['who-viewed-me'],
+    queryFn: profilesApi.getWhoViewedMe,
+    enabled: !!user?.isPremium,
+  });
+
+  const { data: viewCountData } = useQuery({
+    queryKey: ['view-count'],
+    queryFn: profilesApi.getViewCount,
+  });
+
   if (!user) return null;
 
   const displayPhoto = (user.photos?.[0] ?? user.photo) || null;
@@ -197,11 +216,15 @@ export function ProfilePage() {
               </div>
           }
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom,transparent 35%,rgba(8,20,14,0.92) 100%)' }} />
-          <div style={{ position: 'absolute', bottom: 20, left: 22 }}>
-            <div style={{ fontFamily: theme.fonts.serif, fontSize: 30, fontWeight: 500, color: theme.colors.text }}>{user.name}</div>
+          <div style={{ position: 'absolute', bottom: 20, left: 22, right: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ fontFamily: theme.fonts.serif, fontSize: 30, fontWeight: 500, color: theme.colors.text }}>{user.name}</div>
+              {user.isVerified && <div title="Верифікований" style={{ background: 'rgba(59,130,246,0.9)', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>✓</div>}
+              {user.isPremium && <div style={{ background: 'rgba(249,217,118,0.9)', borderRadius: 50, padding: '3px 10px', fontFamily: theme.fonts.sans, fontSize: 11, color: '#1a1000', fontWeight: 700 }}>⭐ Premium</div>}
+              {user.isAdmin && <div style={{ background: 'rgba(249,217,118,0.2)', border: '1px solid rgba(249,217,118,0.4)', borderRadius: 6, padding: '2px 8px', fontFamily: theme.fonts.sans, fontSize: 11, color: '#f9d976' }}>Адмін</div>}
+            </div>
             <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: 'rgba(168,230,207,0.65)', marginTop: 3 }}>
               {calcAge(user.birth)} р. · 🌿 {user.city}
-              {user.isAdmin && <span style={{ marginLeft: 8, background: 'rgba(249,217,118,0.2)', border: '1px solid rgba(249,217,118,0.4)', borderRadius: 6, padding: '2px 8px', fontSize: 11, color: '#f9d976' }}>Адмін</span>}
             </div>
           </div>
         </div>
@@ -263,8 +286,43 @@ export function ProfilePage() {
                   {bonusMsg}
                 </div>
               )}
+              {/* Who viewed me */}
+              <div style={{ marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', color: theme.colors.textFaint }}>
+                    Переглядали профіль {viewCountData?.count != null ? `· ${viewCountData.count}` : ''}
+                  </div>
+                  {!user.isPremium && <span style={{ fontFamily: theme.fonts.sans, fontSize: 11, color: '#f9d976' }}>⭐ Premium</span>}
+                </div>
+                {user.isPremium ? (
+                  viewers.length > 0 ? (
+                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                      {viewers.map((v: User) => (
+                        <div key={v.id} onClick={() => navigate(`/users/${v.id}`)} style={{ cursor: 'pointer', flexShrink: 0, textAlign: 'center' }}>
+                          <Avatar photo={v.photo} name={v.name} size={46} border={`2px solid ${theme.colors.glassBorder}`} />
+                          <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, marginTop: 3, maxWidth: 46, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontFamily: theme.fonts.sans, fontSize: 13, color: theme.colors.textFaint }}>Ще ніхто не переглядав</div>
+                  )
+                ) : (
+                  <button onClick={() => navigate('/coins')} style={{ width: '100%', padding: '12px 16px', borderRadius: theme.radius.md, background: 'rgba(249,217,118,0.06)', border: '1px solid rgba(249,217,118,0.25)', color: '#f9d976', fontFamily: theme.fonts.sans, fontSize: 13, cursor: 'pointer', textAlign: 'left' }}>
+                    🔒 Хто переглядав — тільки для Premium. Натисни щоб дізнатись більше →
+                  </button>
+                )}
+              </div>
+
               <Button fullWidth onClick={() => setEditMode(true)}>{t.editBtn}</Button>
               <Button fullWidth variant="ghost" onClick={logout} style={{ marginTop: 10 }}>{t.logout}</Button>
+              <button
+                onClick={() => { if (confirm('Видалити акаунт? Цю дію неможливо скасувати.')) deleteMutation.mutate(); }}
+                disabled={deleteMutation.isPending}
+                style={{ width: '100%', marginTop: 10, padding: '12px', borderRadius: theme.radius.md, background: 'transparent', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(248,113,113,0.6)', fontFamily: theme.fonts.sans, fontSize: 13, cursor: 'pointer' }}
+              >
+                Видалити акаунт
+              </button>
             </>
           ) : (
             <form onSubmit={handleSubmit((d) => {
