@@ -20,6 +20,10 @@ export function useSocket() {
     const socket = connectSocket();
     socketRef.current = socket;
 
+    socket.on('connect', () => console.log('[SOCKET] connected ✅', socket.id));
+    socket.on('connect_error', (err) => console.error('[SOCKET] connect_error ❌', err.message));
+    socket.on('disconnect', (reason) => console.warn('[SOCKET] disconnected:', reason));
+
     // Real-time message → update cache (replace any temp optimistic entry)
     socket.on('message', (msg: Message) => {
       queryClient.setQueryData<Message[]>(
@@ -45,6 +49,9 @@ export function useSocket() {
     });
 
     return () => {
+      socket.off('connect');
+      socket.off('connect_error');
+      socket.off('disconnect');
       socket.off('message');
       socket.off('match');
     };
@@ -72,7 +79,9 @@ export function useSendMessage(conversationId: string) {
 
     try {
       // 2. Save via HTTP — server persists to DB AND emits socket to other user
+      console.log('[MSG] sending via HTTP...');
       const saved = await chatsApi.sendMessage(conversationId, text);
+      console.log('[MSG] HTTP success, saved id:', saved.id);
       // Replace temp with real saved message
       queryClient.setQueryData<Message[]>(
         ['messages', conversationId],
@@ -83,9 +92,12 @@ export function useSendMessage(conversationId: string) {
         },
       );
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-    } catch {
+    } catch (err: any) {
       // HTTP failed — fall back to socket emit (gateway will save + broadcast)
-      getSocket().emit('message', { conversationId, text });
+      console.error('[MSG] HTTP failed:', err?.response?.status, err?.message);
+      const sock = getSocket();
+      console.log('[MSG] socket connected:', sock.connected, '— falling back to socket emit');
+      sock.emit('message', { conversationId, text });
     }
   };
 }
