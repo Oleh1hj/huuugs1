@@ -24,6 +24,13 @@ export class AuthService {
     const valid = await this.usersService.validatePassword(user, dto.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
+    // Auto-grant admin rights if email matches ADMIN_EMAIL (even if registered earlier)
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (adminEmail && dto.email.toLowerCase() === adminEmail.toLowerCase() && !user.isAdmin) {
+      await this.usersService.setAdminFlag(user.id, true);
+      user.isAdmin = true;
+    }
+
     return this.issueTokens(user);
   }
 
