@@ -44,22 +44,53 @@ export class ChatsService {
 
     if (convs.length === 0) return [];
 
-    // Single query for last message per conversation using DISTINCT ON (PostgreSQL)
     const convIds = convs.map((c) => c.id);
-    const lastMessages: Message[] = await this.msgRepo.query(
-      `SELECT DISTINCT ON ("conversationId") * FROM messages
-       WHERE "conversationId" = ANY($1)
-       ORDER BY "conversationId", "createdAt" DESC`,
-      [convIds],
-    );
+    const isPostgres = this.msgRepo.manager.connection.options.type === 'postgres';
 
-    // Count unread messages per conversation (messages from partner, not read yet)
-    const unreadCounts: { conversationId: string; count: string }[] = await this.msgRepo.query(
-      `SELECT "conversationId", COUNT(*) as count FROM messages
-       WHERE "conversationId" = ANY($1) AND "senderId" != $2 AND "isRead" = false
-       GROUP BY "conversationId"`,
-      [convIds, userId],
-    );
+    let lastMessages: Message[];
+    let unreadCounts: { conversationId: string; count: string }[];
+
+    if (isPostgres) {
+      // PostgreSQL: efficient DISTINCT ON query
+      lastMessages = await this.msgRepo.query(
+        `SELECT DISTINCT ON ("conversationId") * FROM messages
+         WHERE "conversationId" = ANY($1)
+         ORDER BY "conversationId", "createdAt" DESC`,
+        [convIds],
+      );
+      unreadCounts = await this.msgRepo.query(
+        `SELECT "conversationId", COUNT(*) as count FROM messages
+         WHERE "conversationId" = ANY($1) AND "senderId" != $2 AND "isRead" = false
+         GROUP BY "conversationId"`,
+        [convIds, userId],
+      );
+    } else {
+      // SQLite / other DBs: use TypeORM QueryBuilder (compatible syntax)
+      const allMsgs = await this.msgRepo
+        .createQueryBuilder('m')
+        .where('m.conversationId IN (:...ids)', { ids: convIds })
+        .orderBy('m.createdAt', 'DESC')
+        .getMany();
+
+      // Keep only the latest message per conversation
+      const seen = new Set<string>();
+      lastMessages = allMsgs.filter((m) => {
+        if (seen.has(m.conversationId)) return false;
+        seen.add(m.conversationId);
+        return true;
+      });
+
+      const unreadRaw = await this.msgRepo
+        .createQueryBuilder('m')
+        .select('m.conversationId', 'conversationId')
+        .addSelect('COUNT(*)', 'count')
+        .where('m.conversationId IN (:...ids)', { ids: convIds })
+        .andWhere('m.senderId != :uid', { uid: userId })
+        .andWhere('m.isRead = :r', { r: false })
+        .groupBy('m.conversationId')
+        .getRawMany();
+      unreadCounts = unreadRaw;
+    }
 
     const lastMsgMap = new Map(lastMessages.map((m) => [m.conversationId, m]));
     const unreadMap = new Map(unreadCounts.map((r) => [r.conversationId, parseInt(r.count, 10)]));
