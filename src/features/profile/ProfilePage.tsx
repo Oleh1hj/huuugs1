@@ -317,6 +317,12 @@ export function ProfilePage() {
               <Button fullWidth onClick={() => setEditMode(true)}>{t.editBtn}</Button>
               <Button fullWidth variant="ghost" onClick={logout} style={{ marginTop: 10 }}>{t.logout}</Button>
               <button
+                onClick={() => navigate('/support')}
+                style={{ width: '100%', marginTop: 10, padding: '12px', borderRadius: theme.radius.md, background: 'transparent', border: '1px solid rgba(99,179,237,0.3)', color: 'rgba(147,210,255,0.8)', fontFamily: theme.fonts.sans, fontSize: 13, cursor: 'pointer' }}
+              >
+                💬 Написати підтримці
+              </button>
+              <button
                 onClick={() => { if (confirm('Видалити акаунт? Цю дію неможливо скасувати.')) deleteMutation.mutate(); }}
                 disabled={deleteMutation.isPending}
                 style={{ width: '100%', marginTop: 10, padding: '12px', borderRadius: theme.radius.md, background: 'transparent', border: '1px solid rgba(239,68,68,0.2)', color: 'rgba(248,113,113,0.6)', fontFamily: theme.fonts.sans, fontSize: 13, cursor: 'pointer' }}
