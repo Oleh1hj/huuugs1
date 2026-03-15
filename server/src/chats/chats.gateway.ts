@@ -44,6 +44,7 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       socket.userId = user.id;
 
+      const isFirstSocket = !this.userSockets.has(user.id);
       if (!this.userSockets.has(user.id)) this.userSockets.set(user.id, new Set());
       this.userSockets.get(user.id)!.add(socket.id);
 
@@ -51,17 +52,31 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const conversations = await this.chatsService.getMyConversations(user.id);
       conversations.forEach((c) => socket.join(`conv:${c.id}`));
 
+      // Notify conversation partners that user came online (only on first socket)
+      if (isFirstSocket) {
+        conversations.forEach((c) => {
+          socket.to(`conv:${c.id}`).emit('online', { userId: user.id });
+        });
+      }
+
       console.log(`✅ WS connected: ${user.name} (${socket.id})`);
     } catch {
       socket.disconnect();
     }
   }
 
-  handleDisconnect(socket: AuthSocket) {
+  async handleDisconnect(socket: AuthSocket) {
     if (socket.userId) {
       const sockets = this.userSockets.get(socket.userId);
       sockets?.delete(socket.id);
-      if (sockets?.size === 0) this.userSockets.delete(socket.userId);
+      if (sockets?.size === 0) {
+        this.userSockets.delete(socket.userId);
+        // Notify partners that user went offline
+        const conversations = await this.chatsService.getMyConversations(socket.userId);
+        conversations.forEach((c) => {
+          socket.to(`conv:${c.id}`).emit('offline', { userId: socket.userId });
+        });
+      }
     }
   }
 
@@ -95,6 +110,20 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       text: message.text,
       isRead: false,
       createdAt: message.createdAt,
+    });
+  }
+
+  @SubscribeMessage('read')
+  async handleRead(
+    @ConnectedSocket() socket: AuthSocket,
+    @MessageBody() conversationId: string,
+  ) {
+    if (!socket.userId) return;
+    await this.chatsService.markAsRead(conversationId, socket.userId);
+    // Notify all participants so the sender sees the ✓✓ update
+    this.server.to(`conv:${conversationId}`).emit('read', {
+      conversationId,
+      readByUserId: socket.userId,
     });
   }
 

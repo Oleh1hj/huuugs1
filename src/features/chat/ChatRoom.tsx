@@ -17,6 +17,7 @@ export function ChatRoom() {
   const me = useAuthStore((s) => s.user);
   const [input, setInput] = useState('');
   const [typingVisible, setTypingVisible] = useState(false);
+  const [isPartnerOnline, setIsPartnerOnline] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   const t = useUiTranslations();
@@ -24,34 +25,49 @@ export function ChatRoom() {
   const sendMessage = useSendMessage(conversationId!);
   const emitTyping = useTyping(conversationId!);
 
-  // Get conversation info — use query so it refetches after a new match
+  // Get conversation info
   const { data: conversations = [] } = useQuery({
     queryKey: ['conversations'],
     queryFn: chatsApi.getConversations,
   });
-  const conv = conversations.find((c) => c.id === conversationId);
+  const conv = conversations.find((c: Conversation) => c.id === conversationId);
   const partner = conv ? (conv.userAId === me?.id ? conv.userB : conv.userA) : null;
 
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: () => chatsApi.getMessages(conversationId!),
     enabled: !!conversationId,
-    staleTime: 30_000, // socket keeps cache up to date; only re-fetch on reconnect
+    staleTime: 30_000,
   });
 
-  // Join socket room + mark messages as read on open; re-join on reconnect
+  // Check if partner is online on mount
+  useEffect(() => {
+    if (!partner) return;
+    chatsApi.getOnlineUsers().then((ids) => {
+      setIsPartnerOnline(ids.includes(partner.id));
+    });
+  }, [partner?.id]);
+
+  // Join socket room + mark read on open; re-join on reconnect
   useEffect(() => {
     const socket = getSocket();
-    const joinRoom = () => socket.emit('join', conversationId);
+    const joinRoom = () => {
+      socket.emit('join', conversationId);
+      // Emit read event via socket so sender gets real-time ✓✓ update
+      socket.emit('read', conversationId);
+    };
     joinRoom();
     socket.on('connect', joinRoom);
+
+    // Also mark via HTTP for persistence
     chatsApi.markAsRead(conversationId!).then(() => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     });
+
     return () => { socket.off('connect', joinRoom); };
   }, [conversationId, queryClient]);
 
-  // Show typing indicator from socket events
+  // Typing indicator
   useEffect(() => {
     const socket = getSocket();
     const handler = ({ userId }: { userId: string }) => {
@@ -63,6 +79,37 @@ export function ChatRoom() {
     socket.on('typing', handler);
     return () => { socket.off('typing', handler); };
   }, [me?.id]);
+
+  // Online / offline status from partner
+  useEffect(() => {
+    const socket = getSocket();
+    const onOnline = ({ userId }: { userId: string }) => {
+      if (userId === partner?.id) setIsPartnerOnline(true);
+    };
+    const onOffline = ({ userId }: { userId: string }) => {
+      if (userId === partner?.id) setIsPartnerOnline(false);
+    };
+    socket.on('online', onOnline);
+    socket.on('offline', onOffline);
+    return () => {
+      socket.off('online', onOnline);
+      socket.off('offline', onOffline);
+    };
+  }, [partner?.id]);
+
+  // Real-time read receipts: when partner reads, update all my sent messages to isRead=true
+  useEffect(() => {
+    const socket = getSocket();
+    const handler = ({ conversationId: convId, readByUserId }: { conversationId: string; readByUserId: string }) => {
+      if (convId !== conversationId || readByUserId === me?.id) return;
+      queryClient.setQueryData<Message[]>(
+        ['messages', conversationId],
+        (old) => (old ?? []).map((m) => m.senderId === me?.id ? { ...m, isRead: true } : m),
+      );
+    };
+    socket.on('read', handler);
+    return () => { socket.off('read', handler); };
+  }, [conversationId, me?.id, queryClient]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,6 +131,13 @@ export function ChatRoom() {
     emitTyping();
   };
 
+  // Determine online/typing status text for header
+  const statusText = typingVisible
+    ? t.typing
+    : isPartnerOnline
+      ? 'онлайн'
+      : t.mutualLikeHeader;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Header */}
@@ -95,16 +149,19 @@ export function ChatRoom() {
           ←
         </button>
         {partner && (
-          <button onClick={() => navigate(`/users/${partner.id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}>
+          <button onClick={() => navigate(`/users/${partner.id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0, position: 'relative' }}>
             <Avatar photo={partner.photo} name={partner.name} size={42} />
+            {isPartnerOnline && (
+              <div style={{ position: 'absolute', bottom: 1, right: 1, width: 11, height: 11, borderRadius: '50%', background: '#4cd964', border: '2px solid #0d2137' }} />
+            )}
           </button>
         )}
         <div>
           <button onClick={() => partner && navigate(`/users/${partner.id}`)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
             <div style={{ fontFamily: theme.fonts.serif, fontSize: 20, fontWeight: 500, color: theme.colors.text }}>{partner?.name}</div>
           </button>
-          <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, color: theme.colors.textFaint }}>
-            {typingVisible ? t.typing : t.mutualLikeHeader}
+          <div style={{ fontFamily: theme.fonts.sans, fontSize: 11, color: typingVisible || isPartnerOnline ? theme.colors.green.light : theme.colors.textFaint }}>
+            {statusText}
           </div>
         </div>
       </div>
@@ -127,8 +184,13 @@ export function ChatRoom() {
               >
                 {m.text}
               </div>
-              <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, marginTop: 3, paddingLeft: 4, paddingRight: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, marginTop: 3, paddingLeft: 4, paddingRight: 4 }}>
                 {timeStr(m.createdAt)}
+                {isMine && (
+                  <span style={{ color: m.isRead ? theme.colors.green.light : theme.colors.textFaint, fontSize: 12, lineHeight: 1 }}>
+                    {m.isRead ? '✓✓' : '✓'}
+                  </span>
+                )}
               </div>
             </div>
           );

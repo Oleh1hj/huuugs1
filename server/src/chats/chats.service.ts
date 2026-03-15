@@ -45,7 +45,6 @@ export class ChatsService {
     if (convs.length === 0) return [];
 
     // Single query for last message per conversation using DISTINCT ON (PostgreSQL)
-    // Replaces the previous N+1 pattern (one query per conversation)
     const convIds = convs.map((c) => c.id);
     const lastMessages: Message[] = await this.msgRepo.query(
       `SELECT DISTINCT ON ("conversationId") * FROM messages
@@ -54,10 +53,22 @@ export class ChatsService {
       [convIds],
     );
 
+    // Count unread messages per conversation (messages from partner, not read yet)
+    const unreadCounts: { conversationId: string; count: string }[] = await this.msgRepo.query(
+      `SELECT "conversationId", COUNT(*) as count FROM messages
+       WHERE "conversationId" = ANY($1) AND "senderId" != $2 AND "isRead" = false
+       GROUP BY "conversationId"`,
+      [convIds, userId],
+    );
+
     const lastMsgMap = new Map(lastMessages.map((m) => [m.conversationId, m]));
+    const unreadMap = new Map(unreadCounts.map((r) => [r.conversationId, parseInt(r.count, 10)]));
 
     const withLastMsg = convs.map((conv) =>
-      Object.assign(conv, { lastMessage: lastMsgMap.get(conv.id) ?? null }),
+      Object.assign(conv, {
+        lastMessage: lastMsgMap.get(conv.id) ?? null,
+        unreadCount: unreadMap.get(conv.id) ?? 0,
+      }),
     );
 
     // Sort newest conversation first

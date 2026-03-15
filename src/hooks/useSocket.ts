@@ -62,6 +62,7 @@ export function useSocket() {
       socket.off('disconnect');
       socket.off('message');
       socket.off('match');
+      // 'read', 'online', 'offline' are handled locally in ChatRoom — no global handler needed
     };
   }, [isAuthenticated, queryClient, showMatch]);
 
