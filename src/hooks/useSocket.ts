@@ -6,6 +6,7 @@ import { useUiStore } from '@/store/ui.store';
 import { useQueryClient } from '@tanstack/react-query';
 import { Message } from '@/types';
 import { chatsApi } from '@/api/chats.api';
+import { addMessageToCache } from '@/lib/messageCache';
 
 export function useSocket() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -29,7 +30,7 @@ export function useSocket() {
     socket.on('connect_error', (err) => console.error('[SOCKET] connect_error ❌', err.message));
     socket.on('disconnect', (reason) => console.warn('[SOCKET] disconnected:', reason));
 
-    // Real-time message → update cache (replace any temp optimistic entry)
+    // Real-time message → update cache (replace any temp optimistic entry) + persist to localStorage
     socket.on('message', (msg: Message) => {
       queryClient.setQueryData<Message[]>(
         ['messages', msg.conversationId],
@@ -40,6 +41,8 @@ export function useSocket() {
           return [...filtered, msg];
         },
       );
+      // Persist to localStorage so message survives page reloads
+      addMessageToCache(msg);
       // Bump conversation list
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     });
@@ -109,6 +112,8 @@ export function useSendMessage(conversationId: string) {
           return [...filtered, saved];
         },
       );
+      // Persist to localStorage so message survives page reloads
+      addMessageToCache(saved);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     } catch (err: any) {
       // HTTP failed — fall back to socket emit (gateway will save + broadcast)
