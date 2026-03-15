@@ -103,15 +103,23 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
         body.text.trim(),
       );
 
-      // Broadcast to all participants (including sender for multi-device sync)
-      this.server.to(`conv:${body.conversationId}`).emit('message', {
+      const sender = await this.usersService.findById(socket.userId);
+      const payload = {
         id: message.id,
         conversationId: body.conversationId,
         senderId: socket.userId,
         text: message.text,
         isRead: false,
         createdAt: message.createdAt,
-      });
+      };
+
+      if (sender?.isGhostBanned) {
+        // Ghost ban: only echo back to sender so they think it was sent
+        socket.emit('message', payload);
+      } else {
+        // Broadcast to all participants (including sender for multi-device sync)
+        this.server.to(`conv:${body.conversationId}`).emit('message', payload);
+      }
     } catch (err) {
       console.error('[WS] handleMessage save failed:', err);
       socket.emit('message-error', { conversationId: body.conversationId, text: body.text?.trim() });

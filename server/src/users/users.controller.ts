@@ -138,6 +138,16 @@ export class UsersController {
     return this.usersService.adminGetStats(user.id);
   }
 
+  @Get('admin/chat/:userId')
+  adminGetUserConversations(@CurrentUser() user: User, @Param('userId') userId: string) {
+    return this.usersService.adminGetUserConversations(user.id, userId);
+  }
+
+  @Get('admin/chat/:userId/:conversationId')
+  adminGetConversationMessages(@CurrentUser() user: User, @Param('userId') _userId: string, @Param('conversationId') conversationId: string) {
+    return this.usersService.adminGetConversationMessages(user.id, conversationId);
+  }
+
   @Post(':id/verify')
   @HttpCode(204)
   async setVerified(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
@@ -154,5 +164,11 @@ export class UsersController {
   @HttpCode(204)
   async banUser(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
     await this.usersService.adminBanUser(user.id, id, dto.value ?? true);
+  }
+
+  @Post(':id/ghost-ban')
+  @HttpCode(204)
+  async ghostBanUser(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: AdminActionDto) {
+    await this.usersService.adminGhostBan(user.id, id, dto.value ?? true);
   }
 }

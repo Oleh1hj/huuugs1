@@ -6,6 +6,9 @@ import { User } from './user.entity';
 import { BlockedUser } from './blocked-user.entity';
 import { ProfileView } from './profile-view.entity';
 import { Report } from './report.entity';
+import { Conversation } from '../chats/conversation.entity';
+import { Message } from '../chats/message.entity';
+import { Like } from '../likes/like.entity';
 import { RegisterDto } from '../auth/dto/register.dto';
 
 export interface ProfileFilters {
@@ -23,6 +26,9 @@ export class UsersService {
     @InjectRepository(BlockedUser) private readonly blockedRepo: Repository<BlockedUser>,
     @InjectRepository(ProfileView) private readonly viewRepo: Repository<ProfileView>,
     @InjectRepository(Report) private readonly reportRepo: Repository<Report>,
+    @InjectRepository(Conversation) private readonly convRepo: Repository<Conversation>,
+    @InjectRepository(Message) private readonly msgRepo: Repository<Message>,
+    @InjectRepository(Like) private readonly likeRepo: Repository<Like>,
   ) {}
 
   async create(dto: RegisterDto): Promise<User> {
@@ -283,11 +289,117 @@ export class UsersService {
     const active = await this.repo.count({ where: { isActive: true } });
     const premium = await this.repo.count({ where: { isPremium: true } });
     const verified = await this.repo.count({ where: { isVerified: true } });
+    const ghostBanned = await this.repo.count({ where: { isGhostBanned: true } });
     const today = new Date().toISOString().split('T')[0];
     const newToday = await this.repo.createQueryBuilder('u')
       .where('u.createdAt >= :today', { today })
       .getCount();
     const reports = await this.reportRepo.count();
-    return { total, active, premium, verified, newToday, reports };
+
+    // Gender breakdown
+    const male = await this.repo.count({ where: { gender: 'male', isActive: true } });
+    const female = await this.repo.count({ where: { gender: 'female', isActive: true } });
+
+    // Total messages, conversations, likes
+    const totalMessages = await this.msgRepo.count();
+    const totalConversations = await this.convRepo.count();
+    const totalLikes = await this.likeRepo.count();
+
+    // Registrations per day last 7 days
+    const days7: { date: string; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const nextD = new Date(d);
+      nextD.setDate(nextD.getDate() + 1);
+      const nextDateStr = nextD.toISOString().split('T')[0];
+      const count = await this.repo.createQueryBuilder('u')
+        .where('u.createdAt >= :from AND u.createdAt < :to', { from: dateStr, to: nextDateStr })
+        .getCount();
+      days7.push({ date: dateStr, count });
+    }
+
+    // Users with photo
+    const withPhoto = await this.repo.createQueryBuilder('u')
+      .where('u.photo IS NOT NULL AND u.photo != :empty', { empty: '' })
+      .getCount();
+
+    return {
+      total, active, premium, verified, ghostBanned, newToday, reports,
+      male, female,
+      totalMessages, totalConversations, totalLikes,
+      days7,
+      withPhoto,
+    };
+  }
+
+  async adminGhostBan(adminId: string, userId: string, value: boolean): Promise<void> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+    await this.repo.update({ id: userId }, { isGhostBanned: value });
+  }
+
+  async adminGetUserConversations(adminId: string, userId: string): Promise<any[]> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+
+    const convs = await this.convRepo
+      .createQueryBuilder('c')
+      .leftJoinAndSelect('c.userA', 'ua')
+      .leftJoinAndSelect('c.userB', 'ub')
+      .where('c.userAId = :uid OR c.userBId = :uid', { uid: userId })
+      .orderBy('c.createdAt', 'DESC')
+      .getMany();
+
+    if (!convs.length) return [];
+
+    const convIds = convs.map((c) => c.id);
+    const isPostgres = this.msgRepo.manager.connection.options.type === 'postgres';
+
+    let lastMessages: Message[];
+    if (isPostgres) {
+      lastMessages = await this.msgRepo.query(
+        `SELECT DISTINCT ON ("conversationId") * FROM messages
+         WHERE "conversationId" = ANY($1)
+         ORDER BY "conversationId", "createdAt" DESC`,
+        [convIds],
+      );
+    } else {
+      const allMsgs = await this.msgRepo
+        .createQueryBuilder('m')
+        .where('m.conversationId IN (:...ids)', { ids: convIds })
+        .orderBy('m.createdAt', 'DESC')
+        .getMany();
+      const seen = new Set<string>();
+      lastMessages = allMsgs.filter((m) => {
+        if (seen.has(m.conversationId)) return false;
+        seen.add(m.conversationId);
+        return true;
+      });
+    }
+
+    const lastMsgMap = new Map(lastMessages.map((m) => [m.conversationId, m]));
+    return convs.map((c) => ({
+      id: c.id,
+      partnerA: { id: c.userA?.id, name: c.userA?.name, photo: c.userA?.photo },
+      partnerB: { id: c.userB?.id, name: c.userB?.name, photo: c.userB?.photo },
+      lastMessage: lastMsgMap.get(c.id) ?? null,
+      createdAt: c.createdAt,
+    }));
+  }
+
+  async adminGetConversationMessages(adminId: string, conversationId: string): Promise<Message[]> {
+    const admin = await this.findById(adminId);
+    if (!admin?.isAdmin) throw new ForbiddenException('Admin only');
+
+    const msgs = await this.msgRepo
+      .createQueryBuilder('m')
+      .leftJoinAndSelect('m.sender', 's')
+      .where('m.conversationId = :cid', { cid: conversationId })
+      .orderBy('m.createdAt', 'ASC')
+      .take(200)
+      .getMany();
+    return msgs;
   }
 }
