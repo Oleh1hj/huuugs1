@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useUiStore } from '@/store/ui.store';
 import { NavBar } from './NavBar';
 import { MatchModal } from '@/components/MatchModal';
+import { WelcomeModal, shouldShowWelcome, incrementWelcomeCount } from '@/components/WelcomeModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
 import { chatsApi } from '@/api/chats.api';
@@ -14,7 +15,14 @@ export function Layout() {
   const { user } = useAuthStore();
   const { lang, setLang } = useUiStore();
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => shouldShowWelcome());
   const matchNotif = useUiStore((s) => s.matchNotif);
+
+  useEffect(() => {
+    if (showWelcome) {
+      incrementWelcomeCount();
+    }
+  }, [showWelcome]);
   const t = useUiTranslations();
   const navigate = useNavigate();
 
@@ -59,6 +67,9 @@ export function Layout() {
 
       {/* Match popup */}
       {matchNotif && <MatchModal />}
+
+      {/* Welcome modal — first 3 visits */}
+      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
 
       <div style={{ maxWidth: 430, minHeight: '100dvh', margin: '0 auto', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 1 }}>
         {/* Header */}
