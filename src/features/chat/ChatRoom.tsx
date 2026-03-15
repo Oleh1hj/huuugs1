@@ -34,21 +34,25 @@ export function ChatRoom() {
   const conv = conversations.find((c: Conversation) => c.id === conversationId);
   const partner = conv ? (conv.userAId === me?.id ? conv.userB : conv.userA) : null;
 
-  const { data: messages = [], isError: messagesError } = useQuery({
+  const { data: messages = [] } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
-      const serverMsgs = await chatsApi.getMessages(conversationId!);
-      if (serverMsgs.length > 0) {
-        // Server has messages — save them to localStorage as latest truth
-        saveMessagesToCache(conversationId!, serverMsgs);
-        return serverMsgs;
+      try {
+        const serverMsgs = await chatsApi.getMessages(conversationId!);
+        if (serverMsgs.length > 0) {
+          // Server has messages — save them to localStorage as latest truth
+          saveMessagesToCache(conversationId!, serverMsgs);
+          return serverMsgs;
+        }
+      } catch {
+        // Server error (e.g. 404 after DB reset) — fall through to localStorage
       }
-      // Server returned empty (DB may have been reset) — use localStorage cache
+      // Server returned empty or errored — use localStorage cache
       return loadCachedMessages(conversationId!);
     },
     enabled: !!conversationId,
     staleTime: 30_000,
-    retry: 1,
+    retry: 0,
     // Show cached messages instantly while fetching from server
     initialData: () => loadCachedMessages(conversationId ?? ''),
     initialDataUpdatedAt: 0,
@@ -189,12 +193,7 @@ export function ChatRoom() {
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14, paddingRight: 2 }}>
-        {messagesError && (
-          <div style={{ textAlign: 'center', padding: '16px', fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b6b', background: 'rgba(255,60,60,0.08)', borderRadius: 12, margin: '8px 0' }}>
-            Не вдалося завантажити повідомлення. Перевірте підключення або налаштування бази даних.
-          </div>
-        )}
-        {!messagesError && messages.length === 0 && (
+        {messages.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0', fontFamily: theme.fonts.sans, fontSize: 13, color: theme.colors.textFaint }}>
             {t.writeFirst}
           </div>
