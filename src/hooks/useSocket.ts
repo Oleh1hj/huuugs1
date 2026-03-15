@@ -12,6 +12,7 @@ export function useSocket() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const currentUser = useAuthStore((s) => s.user);
   const showMatch = useUiStore((s) => s.showMatch);
+  const enqueueLike = useUiStore((s) => s.enqueueLike);
   const queryClient = useQueryClient();
   const socketRef = useRef<Socket | null>(null);
 
@@ -59,6 +60,12 @@ export function useSocket() {
       socket.emit('join', payload.conversationId);
     });
 
+    // Like ceremony: someone liked you (non-mutual)
+    socket.on('like-received', (payload: { fromId: string; fromName: string; fromPhoto: string | null }) => {
+      enqueueLike({ fromId: payload.fromId, fromName: payload.fromName, fromPhoto: payload.fromPhoto });
+      queryClient.invalidateQueries({ queryKey: ['likes', 'received'] });
+    });
+
     // Socket-level save error: remove the failed temp message from cache
     socket.on('message-error', ({ conversationId, text }: { conversationId: string; text: string }) => {
       queryClient.setQueryData<Message[]>(
@@ -73,10 +80,11 @@ export function useSocket() {
       socket.off('disconnect');
       socket.off('message');
       socket.off('match');
+      socket.off('like-received');
       socket.off('message-error');
       // 'read', 'online', 'offline' are handled locally in ChatRoom — no global handler needed
     };
-  }, [isAuthenticated, queryClient, showMatch]);
+  }, [isAuthenticated, queryClient, showMatch, enqueueLike]);
 
   useEffect(() => {
     if (!isAuthenticated) {

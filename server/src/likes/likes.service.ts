@@ -102,6 +102,16 @@ export class LikesService {
       return { liked: true, match: true, conversationId: conversation.id };
     }
 
+    // Non-mutual like — notify target via ceremony
+    const fromUser = await this.usersService.findById(fromUserId);
+    if (fromUser) {
+      this.chatsGateway.emitToUser(toUserId, 'like-received', {
+        fromId: fromUserId,
+        fromName: fromUser.name,
+        fromPhoto: fromUser.photo ?? null,
+      });
+    }
+
     return { liked: true, match: false };
   }
 
