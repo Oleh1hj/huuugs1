@@ -44,6 +44,7 @@ export interface Conversation {
   userB: User;
   createdAt: string;
   lastMessage?: Message;
+  unreadCount?: number;
 }
 
 export interface Message {

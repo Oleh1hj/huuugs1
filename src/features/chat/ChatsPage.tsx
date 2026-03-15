@@ -39,6 +39,7 @@ export function ChatsPage() {
       {conversations.map((conv: Conversation, i) => {
         const partner = conv.userAId === me?.id ? conv.userB : conv.userA;
         const lastMsg = conv.lastMessage;
+        const unread = conv.unreadCount ?? 0;
 
         return (
           <div
@@ -47,8 +48,9 @@ export function ChatsPage() {
             onClick={() => navigate(`/chats/${conv.id}`)}
             style={{
               display: 'flex', alignItems: 'center', gap: 14,
-              background: g.card, borderRadius: 20, padding: '14px 16px',
-              border: `1px solid ${theme.colors.glassBorder}`,
+              background: unread > 0 ? 'rgba(86,171,145,0.07)' : g.card,
+              borderRadius: 20, padding: '14px 16px',
+              border: `1px solid ${unread > 0 ? 'rgba(86,171,145,0.35)' : theme.colors.glassBorder}`,
               cursor: 'pointer', transition: 'background 0.2s',
             }}
           >
@@ -64,18 +66,36 @@ export function ChatsPage() {
               >
                 <div style={{ fontFamily: theme.fonts.serif, fontSize: 20, fontWeight: 500, color: theme.colors.text }}>{partner?.name}</div>
               </button>
-              <div style={{ fontFamily: theme.fonts.sans, fontSize: 12, color: theme.colors.textMuted, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{
+                fontFamily: theme.fonts.sans, fontSize: 12,
+                color: unread > 0 ? theme.colors.text : theme.colors.textMuted,
+                fontWeight: unread > 0 ? 600 : 400,
+                marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
                 {lastMsg
                   ? (lastMsg.senderId === me?.id ? 'Ти: ' : '') + lastMsg.text
                   : t.mutualLikeFirst}
               </div>
             </div>
 
-            {lastMsg && (
-              <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint, flexShrink: 0 }}>
-                {timeStr(lastMsg.createdAt)}
-              </div>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+              {lastMsg && (
+                <div style={{ fontFamily: theme.fonts.sans, fontSize: 10, color: theme.colors.textFaint }}>
+                  {timeStr(lastMsg.createdAt)}
+                </div>
+              )}
+              {unread > 0 && (
+                <div style={{
+                  background: g.greenBtn,
+                  borderRadius: 10, minWidth: 20, height: 20,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: theme.fonts.sans, fontSize: 11, fontWeight: 700,
+                  color: '#fff', padding: '0 6px',
+                }}>
+                  {unread > 99 ? '99+' : unread}
+                </div>
+              )}
+            </div>
           </div>
         );
       })}
