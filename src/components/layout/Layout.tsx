@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useUiStore } from '@/store/ui.store';
 import { NavBar } from './NavBar';
 import { MatchModal } from '@/components/MatchModal';
+import { LikeCeremony } from '@/components/LikeCeremony';
 import { WelcomeModal, shouldShowWelcome, incrementWelcomeCount } from '@/components/WelcomeModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
@@ -17,6 +18,7 @@ export function Layout() {
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => shouldShowWelcome());
   const matchNotif = useUiStore((s) => s.matchNotif);
+  const likeQueue = useUiStore((s) => s.likeQueue);
 
   useEffect(() => {
     if (showWelcome) {
@@ -67,6 +69,9 @@ export function Layout() {
 
       {/* Match popup */}
       {matchNotif && <MatchModal />}
+
+      {/* Like ceremony — shown one at a time, queued */}
+      {likeQueue.length > 0 && !matchNotif && <LikeCeremony />}
 
       {/* Welcome modal — first 3 visits */}
       {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
