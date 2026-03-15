@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Param, Query, Body, UseGuards, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Param, Query, Body, UseGuards, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { User } from '../users/user.entity';
@@ -38,11 +38,15 @@ export class ChatsController {
   }
 
   @Get(':conversationId/messages')
-  getMessages(
+  async getMessages(
+    @CurrentUser() me: User,
     @Param('conversationId') conversationId: string,
     @Query('limit') limit?: number,
     @Query('before') before?: string,
   ) {
+    const conv = await this.chatsService.findConversationById(conversationId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    if (conv.userAId !== me.id && conv.userBId !== me.id) throw new ForbiddenException();
     return this.chatsService.getMessages(
       conversationId,
       limit ?? 50,
@@ -59,6 +63,9 @@ export class ChatsController {
   ) {
     text = (text ?? '').trim();
     if (!text) return;
+    const conv = await this.chatsService.findConversationById(conversationId);
+    if (!conv) throw new NotFoundException('Conversation not found');
+    if (conv.userAId !== me.id && conv.userBId !== me.id) throw new ForbiddenException();
     const message = await this.chatsService.saveMessage(conversationId, me.id, text);
     // Notify other participants via WebSocket in real-time
     this.chatsGateway.server?.to(`conv:${conversationId}`).emit('message', {

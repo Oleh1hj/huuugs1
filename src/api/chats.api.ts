@@ -1,5 +1,13 @@
+import axios from 'axios';
 import { api } from '@/lib/api';
 import { Conversation, Message } from '@/types';
+
+export const healthApi = {
+  check: () =>
+    axios.get<{ status: string; db: string; dbType: string; persistent: boolean; uptime: number }>(
+      '/api/v1/health',
+    ).then((r) => r.data).catch(() => null),
+};
 
 export const chatsApi = {
   getConversations: () =>

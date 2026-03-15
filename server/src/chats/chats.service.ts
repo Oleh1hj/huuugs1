@@ -124,9 +124,15 @@ export class ChatsService {
     return msgs.reverse(); // chronological order
   }
 
+  async findConversationById(id: string): Promise<Conversation | null> {
+    return this.convRepo.findOne({ where: { id } });
+  }
+
   async saveMessage(conversationId: string, senderId: string, text: string): Promise<Message> {
     const msg = this.msgRepo.create({ conversationId, senderId, text });
-    return this.msgRepo.save(msg);
+    const saved = await this.msgRepo.save(msg);
+    console.log(`[DB] message saved id=${saved.id} conv=${conversationId} sender=${senderId}`);
+    return saved;
   }
 
   async markAsRead(conversationId: string, userId: string): Promise<void> {

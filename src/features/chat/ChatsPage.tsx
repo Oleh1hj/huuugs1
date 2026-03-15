@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { chatsApi } from '@/api/chats.api';
+import { chatsApi, healthApi } from '@/api/chats.api';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
@@ -17,6 +17,13 @@ export function ChatsPage() {
     queryKey: ['conversations'],
     queryFn: chatsApi.getConversations,
     refetchInterval: 15_000,
+  });
+
+  const { data: health } = useQuery({
+    queryKey: ['health'],
+    queryFn: healthApi.check,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) return (
@@ -36,6 +43,29 @@ export function ChatsPage() {
 
   return (
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {health && health.persistent === false && (
+        <div style={{
+          background: 'rgba(255,180,0,0.12)',
+          border: '1px solid rgba(255,180,0,0.4)',
+          borderRadius: 14, padding: '12px 16px',
+          fontFamily: theme.fonts.sans, fontSize: 12,
+          color: '#ffcc44', lineHeight: 1.55,
+        }}>
+          ⚠️ <strong>База даних не підключена.</strong> Повідомлення зберігаються тимчасово і зникнуть після перезапуску.
+          Для постійного зберігання додайте <strong>PostgreSQL</strong> в Railway і встановіть змінну <code>DATABASE_URL</code>.
+        </div>
+      )}
+      {health && health.db === 'disconnected' && (
+        <div style={{
+          background: 'rgba(255,60,60,0.12)',
+          border: '1px solid rgba(255,60,60,0.4)',
+          borderRadius: 14, padding: '12px 16px',
+          fontFamily: theme.fonts.sans, fontSize: 12,
+          color: '#ff6b6b', lineHeight: 1.55,
+        }}>
+          ❌ <strong>Помилка з&apos;єднання з базою даних.</strong> Повідомлення не зберігаються. Перевірте налаштування Railway.
+        </div>
+      )}
       {conversations.map((conv: Conversation, i) => {
         const partner = conv.userAId === me?.id ? conv.userB : conv.userA;
         const lastMsg = conv.lastMessage;
