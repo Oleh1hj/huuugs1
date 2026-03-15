@@ -12,6 +12,7 @@ import { ChatsModule } from './chats/chats.module';
 import { SupportModule } from './support/support.module';
 import { SpinBottleModule } from './spin-bottle/spin-bottle.module';
 import { GroupsModule } from './groups/groups.module';
+import { HealthModule } from './health/health.module';
 
 const distPath = join(__dirname, '..', '..', 'dist');
 
@@ -35,6 +36,13 @@ const distPath = join(__dirname, '..', '..', 'dist');
             ssl: { rejectUnauthorized: false },
             autoLoadEntities: true,
             synchronize: true,
+            // Connection pool — critical for handling many concurrent users
+            extra: {
+              max: 20,                    // max pool connections
+              min: 2,                     // keep 2 warm connections ready
+              idleTimeoutMillis: 30_000,  // close idle connections after 30s
+              connectionTimeoutMillis: 5_000, // fail fast if pool is full
+            },
           }
         : {
             type: 'better-sqlite3' as any,
@@ -52,6 +60,7 @@ const distPath = join(__dirname, '..', '..', 'dist');
     SupportModule,
     SpinBottleModule,
     GroupsModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
