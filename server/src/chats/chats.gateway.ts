@@ -96,21 +96,26 @@ export class ChatsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     if (!socket.userId || !body.text?.trim()) return;
 
-    const message = await this.chatsService.saveMessage(
-      body.conversationId,
-      socket.userId,
-      body.text.trim(),
-    );
+    try {
+      const message = await this.chatsService.saveMessage(
+        body.conversationId,
+        socket.userId,
+        body.text.trim(),
+      );
 
-    // Broadcast to all participants (including sender for multi-device sync)
-    this.server.to(`conv:${body.conversationId}`).emit('message', {
-      id: message.id,
-      conversationId: body.conversationId,
-      senderId: socket.userId,
-      text: message.text,
-      isRead: false,
-      createdAt: message.createdAt,
-    });
+      // Broadcast to all participants (including sender for multi-device sync)
+      this.server.to(`conv:${body.conversationId}`).emit('message', {
+        id: message.id,
+        conversationId: body.conversationId,
+        senderId: socket.userId,
+        text: message.text,
+        isRead: false,
+        createdAt: message.createdAt,
+      });
+    } catch (err) {
+      console.error('[WS] handleMessage save failed:', err);
+      socket.emit('message-error', { conversationId: body.conversationId, text: body.text?.trim() });
+    }
   }
 
   @SubscribeMessage('read')

@@ -56,12 +56,21 @@ export function useSocket() {
       socket.emit('join', payload.conversationId);
     });
 
+    // Socket-level save error: remove the failed temp message from cache
+    socket.on('message-error', ({ conversationId, text }: { conversationId: string; text: string }) => {
+      queryClient.setQueryData<Message[]>(
+        ['messages', conversationId],
+        (old) => (old ?? []).filter((m) => !(m.id.startsWith('temp-') && m.text === text)),
+      );
+    });
+
     return () => {
       socket.off('connect');
       socket.off('connect_error');
       socket.off('disconnect');
       socket.off('message');
       socket.off('match');
+      socket.off('message-error');
       // 'read', 'online', 'offline' are handled locally in ChatRoom — no global handler needed
     };
   }, [isAuthenticated, queryClient, showMatch]);
