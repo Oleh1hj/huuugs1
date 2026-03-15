@@ -1,11 +1,15 @@
 import {
   Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, UpdateDateColumn, OneToMany,
+  CreateDateColumn, UpdateDateColumn, OneToMany, Index,
 } from 'typeorm';
 import { Like } from '../likes/like.entity';
 import { Message } from '../chats/message.entity';
 
 @Entity('users')
+// Composite index for the main search query: active users filtered by gender
+@Index(['isActive', 'gender'])
+// Index for city-based search
+@Index(['isActive', 'city'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
