@@ -40,4 +40,7 @@ export const profilesApi = {
   adminVerify: (userId: string, value: boolean) => api.post(`/users/${userId}/verify`, { value }),
   adminPremium: (userId: string, value: boolean, days = 30) => api.post(`/users/${userId}/premium`, { value, days }),
   adminBan: (userId: string, value: boolean) => api.post(`/users/${userId}/ban`, { value }),
+  adminGhostBan: (userId: string, value: boolean) => api.post(`/users/${userId}/ghost-ban`, { value }),
+  adminGetUserConversations: (userId: string) => api.get<any[]>(`/users/admin/chat/${userId}`).then((r) => r.data),
+  adminGetConversationMessages: (userId: string, conversationId: string) => api.get<any[]>(`/users/admin/chat/${userId}/${conversationId}`).then((r) => r.data),
 };

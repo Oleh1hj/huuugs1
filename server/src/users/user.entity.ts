@@ -108,6 +108,9 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  isGhostBanned: boolean; // user thinks messages are sent but others don't see them
+
   @OneToMany(() => Like, (like) => like.fromUser)
   givenLikes: Like[];
 
