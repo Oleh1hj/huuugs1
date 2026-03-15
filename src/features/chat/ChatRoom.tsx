@@ -33,11 +33,12 @@ export function ChatRoom() {
   const conv = conversations.find((c: Conversation) => c.id === conversationId);
   const partner = conv ? (conv.userAId === me?.id ? conv.userB : conv.userA) : null;
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], isError: messagesError } = useQuery({
     queryKey: ['messages', conversationId],
     queryFn: () => chatsApi.getMessages(conversationId!),
     enabled: !!conversationId,
     staleTime: 30_000,
+    retry: 3,
   });
 
   // Check if partner is online on mount
@@ -168,7 +169,12 @@ export function ChatRoom() {
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14, paddingRight: 2 }}>
-        {messages.length === 0 && (
+        {messagesError && (
+          <div style={{ textAlign: 'center', padding: '16px', fontFamily: theme.fonts.sans, fontSize: 12, color: '#ff6b6b', background: 'rgba(255,60,60,0.08)', borderRadius: 12, margin: '8px 0' }}>
+            Не вдалося завантажити повідомлення. Перевірте підключення або налаштування бази даних.
+          </div>
+        )}
+        {!messagesError && messages.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0', fontFamily: theme.fonts.sans, fontSize: 13, color: theme.colors.textFaint }}>
             {t.writeFirst}
           </div>

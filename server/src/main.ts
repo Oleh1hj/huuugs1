@@ -48,7 +48,12 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');
+
+  const dbType = process.env.DATABASE_URL
+    ? '✅ PostgreSQL (persistent)'
+    : '⚠️  SQLite (EPHEMERAL — messages will be lost on restart! Set DATABASE_URL in Railway)';
   console.log(`🚀 Huugs API running on port ${port}`);
+  console.log(`🗄️  Database: ${dbType}`);
 }
 
 bootstrap();
