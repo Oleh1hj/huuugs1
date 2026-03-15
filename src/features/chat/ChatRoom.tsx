@@ -5,6 +5,7 @@ import { chatsApi } from '@/api/chats.api';
 import { useAuthStore } from '@/store/auth.store';
 import { useSendMessage, useTyping } from '@/hooks/useSocket';
 import { getSocket } from '@/lib/socket';
+import { loadCachedMessages, saveMessagesToCache } from '@/lib/messageCache';
 import { Avatar } from '@/components/ui/Avatar';
 import { useUiTranslations } from '@/i18n';
 import { Message, Conversation } from '@/types';
@@ -35,11 +36,30 @@ export function ChatRoom() {
 
   const { data: messages = [], isError: messagesError } = useQuery({
     queryKey: ['messages', conversationId],
-    queryFn: () => chatsApi.getMessages(conversationId!),
+    queryFn: async () => {
+      const serverMsgs = await chatsApi.getMessages(conversationId!);
+      if (serverMsgs.length > 0) {
+        // Server has messages — save them to localStorage as latest truth
+        saveMessagesToCache(conversationId!, serverMsgs);
+        return serverMsgs;
+      }
+      // Server returned empty (DB may have been reset) — use localStorage cache
+      return loadCachedMessages(conversationId!);
+    },
     enabled: !!conversationId,
     staleTime: 30_000,
-    retry: 3,
+    retry: 1,
+    // Show cached messages instantly while fetching from server
+    initialData: () => loadCachedMessages(conversationId ?? ''),
+    initialDataUpdatedAt: 0,
   });
+
+  // Keep localStorage in sync with the React Query cache (includes socket messages)
+  useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      saveMessagesToCache(conversationId, messages as Message[]);
+    }
+  }, [messages, conversationId]);
 
   // Check if partner is online on mount
   useEffect(() => {
