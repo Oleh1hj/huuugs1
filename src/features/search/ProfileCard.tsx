@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, LikeResult } from '@/types';
 import { likesApi } from '@/api/likes.api';
+import { chatsApi } from '@/api/chats.api';
 import { useUiStore } from '@/store/ui.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useUiTranslations } from '@/i18n';
@@ -24,6 +25,14 @@ export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
 
   const allPhotos = profile.photos?.length ? profile.photos : profile.photo ? [profile.photo] : [];
   const [photoIdx, setPhotoIdx] = useState(0);
+
+  const openChatMutation = useMutation({
+    mutationFn: () => chatsApi.openConversation(profile.id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      navigate(`/chats/${data.conversationId}`);
+    },
+  });
 
   const prevPhoto = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -175,17 +184,21 @@ export function ProfileCard({ profile, isLiked, likedMeBack, index }: Props) {
           {/* Chat if mutual */}
           {likedMeBack && (
             <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/users/${profile.id}`); }}
+              onClick={(e) => { e.stopPropagation(); openChatMutation.mutate(); }}
+              disabled={openChatMutation.isPending}
               style={{
                 padding: '0 24px', height: 56, borderRadius: 18,
-                background: 'linear-gradient(135deg, rgba(255,69,120,0.15), rgba(200,80,192,0.15))',
+                background: openChatMutation.isPending
+                  ? 'rgba(255,255,255,0.04)'
+                  : 'linear-gradient(135deg, rgba(255,69,120,0.15), rgba(200,80,192,0.15))',
                 border: '1px solid rgba(255,69,120,0.3)',
                 color: '#FF8FB1', fontSize: 13, fontWeight: 700, gap: 6,
                 display: 'flex', alignItems: 'center', cursor: 'pointer',
                 fontFamily: 'Inter, sans-serif',
+                transition: 'all 0.2s',
               }}
             >
-              💬 Написати
+              {openChatMutation.isPending ? '…' : '💬 Написати'}
             </button>
           )}
 

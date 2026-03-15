@@ -9,6 +9,7 @@ import { useUiStore } from '@/store/ui.store';
 import { calcAge } from '@/utils';
 import { User } from '@/types';
 import { likesApi as api } from '@/api/likes.api';
+import { useAuthStore } from '@/store/auth.store';
 
 export function LikesPage() {
   const t = useUiTranslations();
@@ -17,6 +18,8 @@ export function LikesPage() {
   const queryClient = useQueryClient();
 
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [pendingChatId, setPendingChatId] = useState<string | null>(null);
+  const currentUser = useAuthStore((s) => s.user);
 
   const { data: whoLiked = [], isLoading } = useQuery({
     queryKey: ['likes', 'received'],
@@ -45,6 +48,16 @@ export function LikesPage() {
       queryClient.invalidateQueries({ queryKey: ['likes', 'given'] });
     },
     onError: () => setPendingId(null),
+  });
+
+  const openChatMutation = useMutation({
+    mutationFn: (userId: string) => chatsApi.openConversation(userId),
+    onSuccess: (data) => {
+      setPendingChatId(null);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      navigate(`/chats/${data.conversationId}`);
+    },
+    onError: () => setPendingChatId(null),
   });
 
   const mutualIds = new Set(likedIds);
@@ -147,16 +160,18 @@ export function LikesPage() {
               {/* Action button */}
               {isMutual ? (
                 <button
-                  onClick={() => navigate(`/users/${person.id}`)}
+                  onClick={() => { setPendingChatId(person.id); openChatMutation.mutate(person.id); }}
+                  disabled={pendingChatId === person.id}
                   style={{
                     flexShrink: 0, width: 42, height: 42, borderRadius: 14, border: 'none',
-                    background: 'linear-gradient(135deg,#FF4578,#C850C0)',
-                    boxShadow: '0 4px 14px rgba(255,69,120,0.4)',
+                    background: pendingChatId === person.id ? 'rgba(255,255,255,0.04)' : 'linear-gradient(135deg,#FF4578,#C850C0)',
+                    boxShadow: pendingChatId === person.id ? 'none' : '0 4px 14px rgba(255,69,120,0.4)',
                     color: '#fff', fontSize: 18,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    transition: 'all 0.2s',
                   }}
                 >
-                  💬
+                  {pendingChatId === person.id ? '…' : '💬'}
                 </button>
               ) : (
                 <button
