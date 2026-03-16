@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# TypeScript check — frontend
+echo "⚙️  Frontend TypeScript..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "❌ Frontend TypeScript errors. Fix before committing."
+  exit 1
+fi
+
+# TypeScript check — backend
+echo "⚙️  Backend TypeScript..."
+cd server && npx tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "❌ Backend TypeScript errors. Fix before committing."
+  exit 1
+fi
+cd ..
+
+# Lint staged files
+echo "⚙️  Linting staged files..."
+npx lint-staged
+
+echo "✅ All checks passed!"

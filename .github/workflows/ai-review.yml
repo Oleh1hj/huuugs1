@@ -1,0 +1,45 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  review:
+    name: Claude AI Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            You are reviewing a PR for **Huugs** — a dating/matching app (React 18 + NestJS + Socket.io + PostgreSQL).
+
+            Review the changed files and focus ONLY on real issues:
+
+            **Security (highest priority):**
+            - JWT validation gaps or auth bypass possibilities
+            - Missing guards on WebSocket events (chats.gateway.ts)
+            - SQL injection via raw queries or unescaped TypeORM input
+            - Sensitive data leaks in API responses (passwords, tokens)
+            - Missing rate limiting on sensitive endpoints
+
+            **WebSocket correctness:**
+            - Race conditions in socket event handlers
+            - Missing room joins before emitting to conversations
+            - Memory leaks (missing socket.off() cleanup)
+
+            **Backend reliability:**
+            - N+1 queries (missing relations in TypeORM finds)
+            - Missing try/catch in async service methods
+            - Unhandled promise rejections in gateway
+
+            **TypeScript safety:**
+            - `any` types that hide real bugs
+            - Missing null checks on TypeORM entities
+
+            Be concise. Group findings by severity: 🔴 Critical, 🟡 Warning, 🟢 Suggestion.
+            Skip style/formatting comments. If no issues found, say so briefly.
