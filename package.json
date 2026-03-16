@@ -17,7 +17,7 @@
     "server:dev": "cd server && npm run start:dev",
     "server:build": "cd server && npm run build",
     "server:install": "cd server && npm install",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
